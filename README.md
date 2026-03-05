@@ -4,7 +4,7 @@ Portal web en PHP para centralizar accesos a herramientas locales con una interf
 
 ## Version actual
 
-`V1.0.0`
+`V1.1.0`
 
 ## Caracteristicas
 

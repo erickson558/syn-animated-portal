@@ -4,6 +4,21 @@ Todos los cambios relevantes de este proyecto se documentan aqui.
 
 El formato esta basado en Keep a Changelog y versionado SemVer (`Vx.y.z`).
 
+## [V1.1.0] - 2026-03-05
+
+### Added
+
+- Intro de carga cinematografica con barra animada.
+- Grid animado de ambiente para profundidad visual.
+- Efecto de typing en el subtitulo principal.
+- Cursor trail neon para escritorio.
+- Sparkles animados en cada card.
+
+### Changed
+
+- Actualizacion de version de app a `V1.1.0`.
+- Rehidratacion de sparkles al recargar tarjetas via AJAX.
+
 ## [V1.0.0] - 2026-03-05
 
 ### Added
