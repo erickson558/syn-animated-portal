@@ -284,16 +284,6 @@ function translateWithLocalGlossaryPreview(text, source, target) {
   return out.trim();
 }
 
-function renderLiveTranslationPreview(text) {
-  var preview = translateWithLocalGlossaryPreview(text, sourceSelect.value, targetSelect.value);
-  if (!isEffectiveClientTranslation(text, preview, sourceSelect.value, targetSelect.value)) {
-    return;
-  }
-
-  translationOutput.classList.add("streaming");
-  animateTypeInto(translationOutput, preview);
-}
-
 async function processTranscript(text, fromManual) {
   setStatus("processing", "Traduciendo...");
   showError("");
@@ -489,10 +479,7 @@ function startListening() {
     }
 
     renderTranscriptLive(interimChunk);
-    var liveTranscriptPreview = composeTranscriptForTranslation(interimChunk);
-    if (liveTranscriptPreview) {
-      renderLiveTranslationPreview(liveTranscriptPreview);
-    }
+    // Evitamos previsualizacion local para no mezclar idiomas durante la escucha.
 
     if (finalChunk) {
       var committed = composeTranscriptForTranslation("");

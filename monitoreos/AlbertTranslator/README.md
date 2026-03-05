@@ -1,6 +1,6 @@
 # AlbertTranslator PHP
 
-Version `V1.2.6` para EasyPHP, sin dependencias de Python y con arquitectura separada frontend/backend.
+Version `V1.2.7` para EasyPHP, sin dependencias de Python y con arquitectura separada frontend/backend.
 
 ## Que hace
 
@@ -15,6 +15,7 @@ Version `V1.2.6` para EasyPHP, sin dependencias de Python y con arquitectura sep
 - Correccion de traduccion para evitar devolver texto original cuando el destino es distinto.
 - Fallback local EN<->ES para mantener traduccion util cuando servicios externos no responden.
 - Traduccion en vivo mas rapida durante la transcripcion (preview + menor latencia de despacho).
+- Mejoras por frases en fallback EN->ES para evitar mezclas ingles/espanol en expresiones comunes.
 
 ## Arquitectura
 

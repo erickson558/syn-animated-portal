@@ -113,6 +113,32 @@ function translate_with_local_glossary($transcript, $source, $target)
         return '';
     }
 
+    $phraseReplacements = [];
+    if ($source === 'en' && $target === 'es') {
+        $phraseReplacements = [
+            '/\bgreat one large pepperoni pizza\b/i' => 'genial una pizza grande de pepperoni',
+            '/\bwould you like\b/i' => 'te gustaria',
+            '/\bone large pepperoni pizza please\b/i' => 'una pizza grande de pepperoni por favor',
+            '/\bone large pepperoni pizza\b/i' => 'una pizza grande de pepperoni',
+            '/\blarge pepperoni pizza\b/i' => 'pizza grande de pepperoni',
+            '/\bpepperoni pizza\b/i' => 'pizza de pepperoni',
+            '/\bone large\b/i' => 'una grande',
+            '/\bhow are you today\b/i' => 'como estas tu hoy',
+        ];
+    } elseif ($source === 'es' && $target === 'en') {
+        $phraseReplacements = [
+            '/\bcomo estas hoy\b/i' => 'how are you today',
+            '/\bpizza grande de pepperoni\b/i' => 'large pepperoni pizza',
+            '/\bpor favor\b/i' => 'please',
+        ];
+    }
+
+    if (!empty($phraseReplacements)) {
+        foreach ($phraseReplacements as $pattern => $replacement) {
+            $transcript = preg_replace($pattern, $replacement, $transcript);
+        }
+    }
+
     $parts = preg_split('/(\W+)/u', $transcript, -1, PREG_SPLIT_DELIM_CAPTURE);
     if (!is_array($parts)) {
         return '';
