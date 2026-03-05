@@ -64,6 +64,10 @@ function http_get_remote($url, &$httpCode, &$networkError)
     $response = @file_get_contents($url, false, $context);
     if ($response === false) {
         $networkError = 'No se pudo conectar al servicio de traduccion (sin curl).';
+        $response = http_get_remote_via_powershell($url, $httpCode, $networkError);
+        if ($response !== false) {
+            return $response;
+        }
     }
 
     if (isset($http_response_header) && is_array($http_response_header)) {
@@ -76,4 +80,39 @@ function http_get_remote($url, &$httpCode, &$networkError)
     }
 
     return $response;
+}
+
+function http_get_remote_via_powershell($url, &$httpCode, &$networkError)
+{
+    $httpCode = 0;
+    if (stripos(PHP_OS, 'WIN') !== 0) {
+        return false;
+    }
+
+    $timeout = (int)TRANSLATION_TIMEOUT_SEC;
+    $psScript = "try { "
+        . "$r = Invoke-WebRequest -UseBasicParsing -Uri " . escapeshellarg($url)
+        . " -TimeoutSec " . $timeout . "; "
+        . "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; "
+        . "Write-Output $r.Content; exit 0 "
+        . "} catch { exit 1 }";
+
+    $cmd = 'powershell -NoProfile -ExecutionPolicy Bypass -Command ' . escapeshellarg($psScript);
+    $out = [];
+    $code = 1;
+    @exec($cmd, $out, $code);
+
+    if ($code !== 0) {
+        $networkError = 'Fallo tambien el fallback de PowerShell al traducir.';
+        return false;
+    }
+
+    $content = trim(implode("\n", $out));
+    if ($content === '') {
+        $networkError = 'PowerShell no devolvio contenido de traduccion.';
+        return false;
+    }
+
+    $httpCode = 200;
+    return $content;
 }

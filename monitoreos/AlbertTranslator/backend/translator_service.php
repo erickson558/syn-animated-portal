@@ -5,6 +5,21 @@ function is_valid_lang($lang)
     return preg_match('/^[a-z]{2,8}$/', $lang) === 1;
 }
 
+function is_effective_translation($sourceText, $translatedText, $sourceLang, $targetLang)
+{
+    $s = strtolower(trim((string)$sourceText));
+    $t = strtolower(trim((string)$translatedText));
+    if ($t === '') {
+        return false;
+    }
+
+    if (strtolower((string)$sourceLang) === strtolower((string)$targetLang)) {
+        return true;
+    }
+
+    return $s !== $t;
+}
+
 function translate_with_google_endpoint($transcript, $source, $target, &$detectedLanguage)
 {
     $query = http_build_query([
@@ -70,12 +85,12 @@ function translate_with_mymemory($transcript, $source, $target)
 function translate_transcript($transcript, $source, $target, &$detectedLanguage)
 {
     $translated = translate_with_google_endpoint($transcript, $source, $target, $detectedLanguage);
-    if ($translated !== '') {
+    if (is_effective_translation($transcript, $translated, $source, $target)) {
         return $translated;
     }
 
     $translated = translate_with_mymemory($transcript, $source, $target);
-    if ($translated !== '') {
+    if (is_effective_translation($transcript, $translated, $source, $target)) {
         return $translated;
     }
 
