@@ -51,6 +51,7 @@ let listeningRequested = false;
 let translateDebounceTimer = null;
 let activeTranslateController = null;
 let transcriptCommittedText = "";
+let transcriptForTranslation = "";
 let lastInterimTranslateAt = 0;
 
 buildLanguageOptions();
@@ -141,6 +142,9 @@ function appendTranscriptChunk(chunk) {
     transcriptCommittedText += "\n";
   }
   transcriptCommittedText += chunk;
+  transcriptForTranslation = transcriptForTranslation
+    ? (transcriptForTranslation + " " + chunk)
+    : chunk;
   transcriptOutput.value = transcriptCommittedText;
   autoScrollToEnd(transcriptOutput);
 }
@@ -159,7 +163,7 @@ function renderTranscriptLive(interimText) {
 }
 
 function composeTranscriptForTranslation(interimText) {
-  var base = transcriptCommittedText;
+  var base = transcriptForTranslation;
   var interim = String(interimText || "").trim();
   if (!interim) {
     return String(base || "").replace(/\s+/g, " ").trim();
@@ -234,12 +238,21 @@ async function processTranscript(text, fromManual) {
       throw new Error(payload.error || ("HTTP " + response.status));
     }
 
+    var translatedText = String(payload.translation || "");
+    if (shouldTryClientFallback(text, translatedText, sourceSelect.value, targetSelect.value)) {
+      var fallback = await translateClientSideFallback(text, sourceSelect.value, targetSelect.value);
+      if (fallback) {
+        translatedText = fallback;
+      }
+    }
+
     if (fromManual) {
       transcriptOutput.value = text;
       autoScrollToEnd(transcriptOutput);
+      transcriptForTranslation = text;
     }
 
-    animateTypeInto(translationOutput, payload.translation || "");
+    animateTypeInto(translationOutput, translatedText);
     setStatus(listening ? "listening" : "idle", listening ? "Escuchando en vivo" : "Listo");
   } catch (error) {
     if (error && error.name === "AbortError") {
@@ -248,6 +261,39 @@ async function processTranscript(text, fromManual) {
     setStatus("error", "Error");
     showError(String(error && error.message ? error.message : error));
   }
+}
+
+function shouldTryClientFallback(original, translated, source, target) {
+  if (!original) {
+    return false;
+  }
+  if (String(source || "").toLowerCase() === String(target || "").toLowerCase()) {
+    return false;
+  }
+  var a = String(original).trim().toLowerCase();
+  var b = String(translated).trim().toLowerCase();
+  return !b || a === b;
+}
+
+async function translateClientSideFallback(text, source, target) {
+  try {
+    var src = String(source || "auto").toLowerCase();
+    var sl = src === "auto" ? "en" : src;
+    var url = "https://api.mymemory.translated.net/get?q="
+      + encodeURIComponent(text)
+      + "&langpair=" + encodeURIComponent(sl + "|" + target);
+    var response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) {
+      return "";
+    }
+    var data = await response.json();
+    if (data && data.responseData && typeof data.responseData.translatedText === "string") {
+      return data.responseData.translatedText.trim();
+    }
+  } catch (_e) {
+    return "";
+  }
+  return "";
 }
 
 async function checkHealth() {
@@ -377,6 +423,7 @@ function stopListening() {
 
 function clearOutputs() {
   transcriptCommittedText = "";
+  transcriptForTranslation = "";
   transcriptOutput.value = "";
   transcriptOutput.classList.remove("streaming");
   translationOutput.value = "";

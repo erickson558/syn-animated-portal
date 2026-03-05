@@ -140,6 +140,7 @@ button:hover {
   align-items: center;
 }
 
+
 button {
   padding: 0.6rem 1rem;
 }
@@ -263,6 +264,7 @@ textarea.streaming {
 .manual-pane {
   margin-top: 0.95rem;
 }
+
 
 .manual-pane textarea {
   min-height: 110px;
