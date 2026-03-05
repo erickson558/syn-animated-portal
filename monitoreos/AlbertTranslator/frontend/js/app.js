@@ -1,17 +1,17 @@
 const COMMON_LANGUAGES = [
-  { name: "Espanol", code: "es" },
-  { name: "Ingles", code: "en" },
-  { name: "Frances", code: "fr" },
-  { name: "Aleman", code: "de" },
+  { name: "Español", code: "es" },
+  { name: "Inglés", code: "en" },
+  { name: "Francés", code: "fr" },
+  { name: "Alemán", code: "de" },
   { name: "Italiano", code: "it" },
-  { name: "Portugues", code: "pt" },
+  { name: "Portugués", code: "pt" },
   { name: "Ruso", code: "ru" },
-  { name: "Japones", code: "ja" },
+  { name: "Japonés", code: "ja" },
   { name: "Coreano", code: "ko" },
   { name: "Chino", code: "zh" },
-  { name: "Arabe", code: "ar" },
+  { name: "Árabe", code: "ar" },
   { name: "Hindi", code: "hi" },
-  { name: "Neerlandes", code: "nl" },
+  { name: "Neerlandés", code: "nl" },
   { name: "Turco", code: "tr" },
   { name: "Polaco", code: "pl" },
   { name: "Ucraniano", code: "uk" },
@@ -20,7 +20,7 @@ const COMMON_LANGUAGES = [
   { name: "Hebreo", code: "he" },
 ];
 
-const SOURCE_LANGUAGES = [{ name: "Detectar automaticamente", code: "auto" }, ...COMMON_LANGUAGES];
+const SOURCE_LANGUAGES = [{ name: "Detectar automáticamente", code: "auto" }, ...COMMON_LANGUAGES];
 const TARGET_LANGUAGES = [...COMMON_LANGUAGES];
 
 const sourceSelect = document.getElementById("source-language");
@@ -39,6 +39,17 @@ const speakTranscriptBtn = document.getElementById("speak-transcript");
 const speakTranslationBtn = document.getElementById("speak-translation");
 const manualInput = document.getElementById("manual-input");
 const translateManualBtn = document.getElementById("translate-manual");
+const translationProviderSelect = document.getElementById("translation-provider");
+const typingProfileSelect = document.getElementById("typing-profile");
+const typingSpeedDial = document.getElementById("typing-speed");
+const typingSpeedValue = document.getElementById("typing-speed-value");
+const typingStaggerToggle = document.getElementById("typing-stagger");
+
+const TYPING_PROFILES = {
+  cinematic: { speed: 30, stagger: true },
+  normal: { speed: 62, stagger: true },
+  turbo: { speed: 92, stagger: false },
+};
 
 const BASE = (window.PHP_APP_CONFIG && window.PHP_APP_CONFIG.apiBaseUrl
   ? window.PHP_APP_CONFIG.apiBaseUrl
@@ -49,19 +60,31 @@ let recognition = null;
 let listening = false;
 let listeningRequested = false;
 let translateDebounceTimer = null;
-let activeTranslateController = null;
 let transcriptCommittedText = "";
 let transcriptForTranslation = "";
 let lastInterimTranslateAt = 0;
 let lastAcceptedTranslation = "";
+let lastRenderedLiveSource = "";
+let translateInFlight = false;
+let queuedTranslationText = "";
+let queuedTranslationFromManual = false;
+let lastInterimChunk = "";
+const typewriterStates = {
+  transcript: { timer: null, target: "", running: false, raw: "", cursorOn: false, cursorTimer: null, textarea: null },
+  translation: { timer: null, target: "", running: false, raw: "", cursorOn: false, cursorTimer: null, textarea: null },
+};
 
 const LOCAL_GLOSSARY_EN_ES = {
-  hello: "hola", hi: "hola", how: "como", are: "estas", you: "tu", today: "hoy",
+  hello: "hola", hi: "hola", how: "cómo", are: "estás", you: "tú", today: "hoy", tomorrow: "mañana", yesterday: "ayer",
+  guys: "chicos", so: "así", but: "pero", have: "he", heard: "escuchado", some: "algunas", people: "personas",
+  right: "aquí", here: "aquí", say: "decir", down: "abajo", get: "ponerse", well: "bien", do: "hacer", not: "no", know: "sé", okay: "bien", ok: "bien",
   good: "bueno", morning: "manana", afternoon: "tarde", night: "noche",
-  thanks: "gracias", thank: "gracias", please: "por favor", yes: "si", no: "no",
-  what: "que", where: "donde", when: "cuando", why: "por que", who: "quien",
-  name: "nombre", my: "mi", your: "tu", is: "es", this: "esto", that: "eso",
-  can: "puede", help: "ayudar", me: "me", need: "necesito", want: "quiero",
+  thanks: "gracias", thank: "gracias", please: "por favor", yes: "sí", no: "no",
+  what: "qué", where: "dónde", when: "cuándo", why: "por qué", who: "quién",
+  name: "nombre", my: "mi", your: "tu", is: "es", this: "esto", that: "eso", we: "nosotros",
+  can: "puede", should: "debería", would: "gustaría", help: "ayudar", me: "me", need: "necesito", want: "quiero",
+  buy: "comprar", send: "enviar", schedule: "programar", meeting: "reunion", next: "proxima", week: "semana",
+  report: "reporte", ticket: "boleto", translation: "traducción", translations: "traducciones", one: "una", large: "grande", great: "genial", pizza: "pizza", pepperoni: "pepperoni",
   water: "agua", food: "comida", house: "casa", work: "trabajo", friend: "amigo",
   family: "familia", very: "muy", much: "mucho", time: "tiempo", now: "ahora", later: "luego"
 };
@@ -105,7 +128,7 @@ function buildLanguageOptions() {
     targetSelect.appendChild(option);
   });
 
-  // Requisito: por defecto origen Ingles, destino Espanol
+  // Requisito: por defecto origen Inglés, destino Español
   sourceSelect.value = "en";
   targetSelect.value = "es";
 }
@@ -139,11 +162,76 @@ function wireEvents() {
   translateManualBtn.addEventListener("click", function () {
     var text = String(manualInput.value || "").trim();
     if (!text) {
-      showError("Escribe texto en traduccion manual.");
+      showError("Escribe texto en traducción manual.");
       return;
     }
     enqueueTranslation(text, true);
   });
+
+  if (translationProviderSelect) {
+    translationProviderSelect.addEventListener("change", function () {
+      var txt = composeTranscriptForTranslation(lastInterimChunk);
+      if (txt.length > 3) {
+        enqueueTranslation(txt, false, 0);
+      }
+    });
+  }
+
+  if (typingSpeedDial && typingSpeedValue) {
+    var syncSpeedLabel = function () {
+      typingSpeedValue.textContent = String(typingSpeedDial.value || "62");
+      syncProfileFromControls();
+    };
+    typingSpeedDial.addEventListener("input", syncSpeedLabel);
+    syncSpeedLabel();
+  }
+
+  if (typingStaggerToggle) {
+    typingStaggerToggle.addEventListener("change", syncProfileFromControls);
+  }
+
+  if (typingProfileSelect) {
+    typingProfileSelect.addEventListener("change", function () {
+      applyTypingProfile(typingProfileSelect.value);
+    });
+    applyTypingProfile(typingProfileSelect.value || "normal");
+  }
+}
+
+function applyTypingProfile(profileName) {
+  var key = String(profileName || "normal").toLowerCase();
+  var profile = TYPING_PROFILES[key] || TYPING_PROFILES.normal;
+
+  if (typingSpeedDial) {
+    typingSpeedDial.value = String(profile.speed);
+  }
+  if (typingSpeedValue) {
+    typingSpeedValue.textContent = String(profile.speed);
+  }
+  if (typingStaggerToggle) {
+    typingStaggerToggle.checked = !!profile.stagger;
+  }
+}
+
+function syncProfileFromControls() {
+  if (!typingProfileSelect || !typingSpeedDial || !typingStaggerToggle) {
+    return;
+  }
+
+  var speed = Number(typingSpeedDial.value || 62);
+  var stagger = !!typingStaggerToggle.checked;
+
+  var selected = "custom";
+  if (speed === TYPING_PROFILES.cinematic.speed && stagger === TYPING_PROFILES.cinematic.stagger) {
+    selected = "cinematic";
+  } else if (speed === TYPING_PROFILES.normal.speed && stagger === TYPING_PROFILES.normal.stagger) {
+    selected = "normal";
+  } else if (speed === TYPING_PROFILES.turbo.speed && stagger === TYPING_PROFILES.turbo.stagger) {
+    selected = "turbo";
+  }
+
+  // Mantiene UX clara: si no coincide con preset, vuelve a mostrar "Normal".
+  typingProfileSelect.value = selected === "custom" ? "normal" : selected;
 }
 
 function setStatus(state, text) {
@@ -168,15 +256,19 @@ function autoScrollToEnd(textarea) {
 }
 
 function appendTranscriptChunk(chunk) {
+  var normalizedChunk = String(chunk || "").trim();
+  if (!normalizedChunk) {
+    return;
+  }
+
   if (transcriptCommittedText) {
     transcriptCommittedText += "\n";
   }
-  transcriptCommittedText += chunk;
+  transcriptCommittedText += normalizedChunk;
   transcriptForTranslation = transcriptForTranslation
-    ? (transcriptForTranslation + " " + chunk)
-    : chunk;
-  transcriptOutput.value = transcriptCommittedText;
-  autoScrollToEnd(transcriptOutput);
+    ? (transcriptForTranslation + " " + normalizedChunk)
+    : normalizedChunk;
+  animateTypeInto(transcriptOutput, transcriptCommittedText, "transcript");
 }
 
 function renderTranscriptLive(interimText) {
@@ -188,8 +280,7 @@ function renderTranscriptLive(interimText) {
     transcriptOutput.classList.remove("streaming");
   }
 
-  transcriptOutput.value = text;
-  autoScrollToEnd(transcriptOutput);
+  animateTypeInto(transcriptOutput, text, "transcript");
 }
 
 function composeTranscriptForTranslation(interimText) {
@@ -201,34 +292,146 @@ function composeTranscriptForTranslation(interimText) {
   return String((base ? base + " " : "") + interim).replace(/\s+/g, " ").trim();
 }
 
-function animateTypeInto(textarea, finalText) {
-  var previous = String(textarea.value || "");
-  if (finalText.indexOf(previous) !== 0) {
-    textarea.value = finalText;
-    autoScrollToEnd(textarea);
-    textarea.classList.remove("typing");
-    return;
+function computeTypeDelayMs(ch, mode) {
+  var base = mode === "transcript" ? 10 : 13;
+  var dial = typingSpeedDial ? Number(typingSpeedDial.value || 62) : 62;
+  var factor = 2.3 - ((dial - 1) / 99) * 2.0;
+  if (factor < 0.28) {
+    factor = 0.28;
+  }
+  if (factor > 2.5) {
+    factor = 2.5;
+  }
+  var delay = base * factor;
+  if (ch === " ") {
+    return Math.max(4, Math.floor(delay * 0.5));
+  }
+  if (/[,.!?;:]/.test(ch)) {
+    return Math.floor(delay + 50);
+  }
+  if (ch === "\n") {
+    return Math.floor(delay + 24);
+  }
+  return Math.floor(delay + Math.random() * 9);
+}
+
+function shouldUseStagger() {
+  return !!(typingStaggerToggle && typingStaggerToggle.checked);
+}
+
+function nextTypedIndex(target, startIndex) {
+  if (!shouldUseStagger()) {
+    return startIndex + 1;
   }
 
-  var delta = finalText.substring(previous.length);
-  if (!delta) {
-    textarea.classList.remove("typing");
-    return;
-  }
-
-  var i = 0;
-  textarea.classList.add("typing");
-  function typeStep() {
+  var i = startIndex;
+  var n = target.length;
+  while (i < n && /\s/.test(target.charAt(i))) {
     i += 1;
-    textarea.value = previous + delta.substring(0, i);
-    autoScrollToEnd(textarea);
-    if (i < delta.length) {
-      requestAnimationFrame(typeStep);
-    } else {
-      textarea.classList.remove("typing");
-    }
   }
-  requestAnimationFrame(typeStep);
+  while (i < n && !/\s/.test(target.charAt(i))) {
+    i += 1;
+  }
+  while (i < n && /\s/.test(target.charAt(i))) {
+    i += 1;
+  }
+
+  return i > startIndex ? i : (startIndex + 1);
+}
+
+function renderWithCursor(mode) {
+  var state = typewriterStates[mode];
+  if (!state || !state.textarea) {
+    return;
+  }
+  var suffix = state.running && state.cursorOn ? "|" : "";
+  state.textarea.value = String(state.raw || "") + suffix;
+  autoScrollToEnd(state.textarea);
+}
+
+function startBlinkingCursor(mode, textarea) {
+  var state = typewriterStates[mode];
+  if (!state) {
+    return;
+  }
+  state.textarea = textarea;
+  if (state.cursorTimer) {
+    return;
+  }
+  state.cursorOn = true;
+  renderWithCursor(mode);
+  state.cursorTimer = setInterval(function () {
+    state.cursorOn = !state.cursorOn;
+    renderWithCursor(mode);
+  }, 430);
+}
+
+function stopTypewriter(mode) {
+  var state = typewriterStates[mode];
+  if (!state) {
+    return;
+  }
+  if (state.timer) {
+    clearTimeout(state.timer);
+    state.timer = null;
+  }
+  if (state.cursorTimer) {
+    clearInterval(state.cursorTimer);
+    state.cursorTimer = null;
+  }
+  if (state.textarea) {
+    state.textarea.value = String(state.raw || "");
+    autoScrollToEnd(state.textarea);
+  }
+  state.cursorOn = false;
+  state.running = false;
+}
+
+function animateTypeInto(textarea, finalText, mode) {
+  var state = typewriterStates[mode || "translation"];
+  if (!state) {
+    textarea.value = String(finalText || "");
+    autoScrollToEnd(textarea);
+    return;
+  }
+
+  state.target = String(finalText || "");
+
+  if (state.running) {
+    return;
+  }
+
+  function typeStep() {
+    var current = String(state.raw || "");
+    var target = String(state.target || "");
+
+    if (current === target) {
+      stopTypewriter(mode);
+      textarea.classList.remove("typing");
+      return;
+    }
+
+    // Si el target cambia bruscamente, sincroniza sin parpadeo.
+    if (target.indexOf(current) !== 0) {
+      state.raw = target;
+      stopTypewriter(mode);
+      textarea.classList.remove("typing");
+      return;
+    }
+
+    var nextIndex = nextTypedIndex(target, current.length);
+    var nextChar = target.charAt(Math.max(nextIndex - 1, 0));
+    state.raw = target.substring(0, nextIndex);
+    renderWithCursor(mode);
+    textarea.classList.add("typing");
+
+    state.timer = setTimeout(typeStep, computeTypeDelayMs(nextChar, mode));
+  }
+
+  state.textarea = textarea;
+  startBlinkingCursor(mode, textarea);
+  state.running = true;
+  typeStep();
 }
 
 function enqueueTranslation(text, fromManual, priorityMs) {
@@ -239,8 +442,35 @@ function enqueueTranslation(text, fromManual, priorityMs) {
   var waitMs = typeof priorityMs === "number" ? priorityMs : (fromManual ? 0 : 120);
 
   translateDebounceTimer = setTimeout(function () {
-    processTranscript(text, fromManual === true);
+    queuedTranslationText = String(text || "").trim();
+    queuedTranslationFromManual = fromManual === true;
+    drainTranslationQueue();
   }, waitMs);
+}
+
+async function drainTranslationQueue() {
+  if (translateInFlight) {
+    return;
+  }
+
+  var nextText = String(queuedTranslationText || "").trim();
+  if (!nextText) {
+    return;
+  }
+
+  var nextFromManual = queuedTranslationFromManual === true;
+  queuedTranslationText = "";
+  queuedTranslationFromManual = false;
+  translateInFlight = true;
+
+  try {
+    await processTranscript(nextText, nextFromManual);
+  } finally {
+    translateInFlight = false;
+    if (queuedTranslationText) {
+      drainTranslationQueue();
+    }
+  }
 }
 
 function normalizeFlatText(text) {
@@ -292,7 +522,80 @@ function shouldAcceptTranslation(original, translated, source, target) {
   if (looksMixedForTarget(translated, target)) {
     return false;
   }
+
+  var src = String(source || "").toLowerCase();
+  var tgt = String(target || "").toLowerCase();
+  if (src === "en" && tgt === "es") {
+    var coverage = estimateEsCoverage(translated);
+    if (coverage < 0.34) {
+      return false;
+    }
+  }
+
   return true;
+}
+
+function estimateEsCoverage(text) {
+  var t = String(text || "").toLowerCase();
+  if (!t) {
+    return 0;
+  }
+
+  var tokens = t.match(/[a-záéíóúñü]+/gi) || [];
+  if (!tokens.length) {
+    return 0;
+  }
+
+  var englishHints = {
+    the: 1, and: 1, would: 1, should: 1, can: 1, buy: 1, report: 1, meeting: 1,
+    week: 1, ticket: 1, tomorrow: 1, guys: 1, know: 1, heard: 1, right: 1, translations: 1
+  };
+  var spanishHints = {
+    el: 1, la: 1, los: 1, las: 1, y: 1, de: 1, para: 1, por: 1, qué: 1, que: 1,
+    una: 1, hoy: 1, mañana: 1, reunion: 1, reunión: 1, reporte: 1, boleto: 1,
+    está: 1, esta: 1, cómo: 1, como: 1, porqué: 1, porque: 1, nosotros: 1, te: 1,
+    gustaria: 1, gustaría: 1, enviar: 1, programar: 1, semana: 1
+  };
+
+  var es = 0;
+  var en = 0;
+  for (var i = 0; i < tokens.length; i += 1) {
+    var token = tokens[i];
+    if (spanishHints[token]) {
+      es += 1;
+    }
+    if (englishHints[token]) {
+      en += 1;
+    }
+  }
+
+  return es / Math.max(1, (es + en));
+}
+
+function renderLiveTranslationPreview(sourceText) {
+  var src = String(sourceText || "").trim();
+  if (!src) {
+    return;
+  }
+
+  // Evita redibujar exactamente el mismo buffer de origen.
+  if (normalizeFlatText(src) === normalizeFlatText(lastRenderedLiveSource)) {
+    return;
+  }
+
+  var preview = translateWithLocalGlossaryPreview(src, sourceSelect.value, targetSelect.value);
+  if (!shouldAcceptTranslation(src, preview, sourceSelect.value, targetSelect.value)) {
+    return;
+  }
+
+  // Evita preview pobre en frases largas; se reserva para feedback corto inmediato.
+  if (src.length > 110 && estimateEsCoverage(preview) < 0.62) {
+    return;
+  }
+
+  lastRenderedLiveSource = src;
+  translationOutput.classList.add("streaming");
+  animateTypeInto(translationOutput, preview, "translation");
 }
 
 function translateWithLocalGlossaryPreview(text, source, target) {
@@ -323,17 +626,43 @@ function translateWithLocalGlossaryPreview(text, source, target) {
   return out.trim();
 }
 
-async function processTranscript(text, fromManual) {
-  setStatus("processing", "Traduciendo...");
-  showError("");
-
-  if (activeTranslateController) {
-    activeTranslateController.abort();
+function pickBestSpeechAlternative(result) {
+  if (!result || typeof result.length !== "number" || result.length < 1) {
+    return "";
   }
 
-  activeTranslateController = new AbortController();
+  var bestText = "";
+  var bestScore = -1;
+  for (var i = 0; i < result.length; i += 1) {
+    var alt = result[i];
+    var t = String((alt && alt.transcript) || "").trim();
+    if (!t) {
+      continue;
+    }
+    var confidence = typeof alt.confidence === "number" ? alt.confidence : 0;
+    var score = confidence * 2 + (t.length / 80);
+    if (score > bestScore) {
+      bestScore = score;
+      bestText = t;
+    }
+  }
+
+  return bestText;
+}
+
+async function processTranscript(text, fromManual) {
+  if (fromManual) {
+    setStatus("processing", "Traduciendo...");
+  }
+  showError("");
+
+  var requestController = new AbortController();
+  var requestTimeout = setTimeout(function () {
+    requestController.abort();
+  }, fromManual ? 8000 : 2800);
 
   try {
+    var localPreviewCurrent = "";
     var response = await fetch(BASE + "/api/translate-text.php", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -341,9 +670,12 @@ async function processTranscript(text, fromManual) {
         transcript: text,
         source_language: sourceSelect.value,
         target_language: targetSelect.value,
+        translation_provider: translationProviderSelect ? translationProviderSelect.value : "auto",
       }),
-      signal: activeTranslateController.signal,
+      signal: requestController.signal,
     });
+
+    clearTimeout(requestTimeout);
 
     var payload = await response.json();
     if (!response.ok) {
@@ -366,34 +698,49 @@ async function processTranscript(text, fromManual) {
     }
 
     if (!shouldAcceptTranslation(text, translatedText, sourceSelect.value, targetSelect.value)) {
-      var localPreview = translateWithLocalGlossaryPreview(text, sourceSelect.value, targetSelect.value);
-      if (shouldAcceptTranslation(text, localPreview, sourceSelect.value, targetSelect.value)) {
-        translatedText = localPreview;
+      localPreviewCurrent = translateWithLocalGlossaryPreview(text, sourceSelect.value, targetSelect.value);
+      if (shouldAcceptTranslation(text, localPreviewCurrent, sourceSelect.value, targetSelect.value) && estimateEsCoverage(localPreviewCurrent) >= 0.62) {
+        translatedText = localPreviewCurrent;
       }
     }
 
     if (!shouldAcceptTranslation(text, translatedText, sourceSelect.value, targetSelect.value)) {
-      translatedText = lastAcceptedTranslation || translatedText;
+      translatedText = lastAcceptedTranslation || "";
+    }
+
+    if (!translatedText && !fromManual) {
+      setStatus(listening ? "listening" : "idle", listening ? "Escuchando en vivo" : "Listo");
+      return;
     }
 
     if (fromManual) {
+      var transcriptState = typewriterStates.transcript;
+      stopTypewriter("transcript");
+      transcriptState.raw = text;
       transcriptOutput.value = text;
       autoScrollToEnd(transcriptOutput);
       transcriptForTranslation = text;
     }
 
-    translationOutput.classList.remove("streaming");
-    animateTypeInto(translationOutput, translatedText);
+    if (listeningRequested && !fromManual) {
+      translationOutput.classList.add("streaming");
+    } else {
+      translationOutput.classList.remove("streaming");
+    }
+    animateTypeInto(translationOutput, translatedText, "translation");
     if (translatedText) {
       lastAcceptedTranslation = translatedText;
     }
     setStatus(listening ? "listening" : "idle", listening ? "Escuchando en vivo" : "Listo");
   } catch (error) {
     if (error && error.name === "AbortError") {
+      setStatus(listening ? "listening" : "idle", listening ? "Escuchando en vivo" : "Listo");
       return;
     }
     setStatus("error", "Error");
     showError(String(error && error.message ? error.message : error));
+  } finally {
+    clearTimeout(requestTimeout);
   }
 }
 
@@ -410,9 +757,38 @@ function shouldTryClientFallback(original, translated, source, target) {
 }
 
 async function translateClientSideFallback(text, source, target) {
+  var src = String(source || "auto").toLowerCase();
+  var sl = src === "auto" ? "auto" : src;
+
+  // Primer intento: endpoint publico de Google (resultado mas cercano a Google Translate).
   try {
-    var src = String(source || "auto").toLowerCase();
-    var sl = src === "auto" ? "auto" : src;
+    var googleUrl = "https://translate.googleapis.com/translate_a/single?client=gtx"
+      + "&sl=" + encodeURIComponent(sl)
+      + "&tl=" + encodeURIComponent(target)
+      + "&dt=t&q=" + encodeURIComponent(text);
+    var googleRes = await fetch(googleUrl, { cache: "no-store" });
+    if (googleRes.ok) {
+      var googleData = await googleRes.json();
+      var translated = "";
+      if (Array.isArray(googleData) && Array.isArray(googleData[0])) {
+        for (var i = 0; i < googleData[0].length; i += 1) {
+          var seg = googleData[0][i];
+          if (Array.isArray(seg) && typeof seg[0] === "string") {
+            translated += seg[0];
+          }
+        }
+      }
+      translated = String(translated || "").trim();
+      if (translated) {
+        return translated;
+      }
+    }
+  } catch (_eGoogle) {
+    // Continua con fallback secundario.
+  }
+
+  // Segundo intento: MyMemory.
+  try {
     var url = "https://api.mymemory.translated.net/get?q="
       + encodeURIComponent(text)
       + "&langpair=" + encodeURIComponent(sl + "|" + target);
@@ -459,6 +835,7 @@ function startListening() {
   recognition = new SpeechRecognitionCtor();
   recognition.continuous = true;
   recognition.interimResults = true;
+  recognition.maxAlternatives = 3;
   recognition.lang = resolveRecognitionLang(sourceSelect.value);
 
   recognition.onstart = function () {
@@ -473,6 +850,16 @@ function startListening() {
   };
 
   recognition.onend = function () {
+    var pending = String(lastInterimChunk || "").trim();
+    if (pending) {
+      appendTranscriptChunk(pending);
+      lastInterimChunk = "";
+      var pendingForTranslation = composeTranscriptForTranslation("");
+      if (pendingForTranslation.length > 3) {
+        enqueueTranslation(pendingForTranslation, false, 20);
+      }
+    }
+
     listening = false;
     if (!listeningRequested) {
       startBtn.disabled = false;
@@ -508,6 +895,9 @@ function startListening() {
       var result = event.results[i];
       var text = String((result[0] && result[0].transcript) || "").trim();
       if (!text) {
+        text = pickBestSpeechAlternative(result);
+      }
+      if (!text) {
         continue;
       }
       if (result.isFinal) {
@@ -519,9 +909,11 @@ function startListening() {
 
     finalChunk = finalChunk.trim();
     interimChunk = interimChunk.trim();
+    lastInterimChunk = interimChunk;
 
     if (finalChunk) {
       appendTranscriptChunk(finalChunk);
+      lastInterimChunk = "";
     }
 
     renderTranscriptLive(interimChunk);
@@ -541,7 +933,8 @@ function startListening() {
       var liveTranscript = composeTranscriptForTranslation(interimChunk);
       if (liveTranscript.length > 3) {
         lastInterimTranslateAt = now;
-        enqueueTranslation(liveTranscript, false, 70);
+        renderLiveTranslationPreview(liveTranscript);
+        enqueueTranslation(liveTranscript, false, 90);
       }
     }
   };
@@ -551,18 +944,35 @@ function startListening() {
 
 function stopListening() {
   listeningRequested = false;
+  lastRenderedLiveSource = "";
+  var pending = String(lastInterimChunk || "").trim();
+  var normalizedPending = normalizeFlatText(pending);
+  var normalizedCurrent = normalizeFlatText(transcriptForTranslation);
+  if (pending && (!normalizedCurrent || normalizedCurrent.indexOf(normalizedPending) === -1)) {
+    appendTranscriptChunk(pending);
+    lastInterimChunk = "";
+  }
   if (recognition) {
     recognition.stop();
   }
 }
 
 function clearOutputs() {
+  stopTypewriter("transcript");
+  stopTypewriter("translation");
   transcriptCommittedText = "";
   transcriptForTranslation = "";
+  typewriterStates.transcript.raw = "";
+  typewriterStates.translation.raw = "";
   transcriptOutput.value = "";
   transcriptOutput.classList.remove("streaming");
   translationOutput.value = "";
   lastAcceptedTranslation = "";
+  lastRenderedLiveSource = "";
+  queuedTranslationText = "";
+  queuedTranslationFromManual = false;
+  translateInFlight = false;
+  lastInterimChunk = "";
   manualInput.value = "";
   showError("");
   setStatus("idle", "Inactivo");
@@ -617,8 +1027,12 @@ function resolveSpeechLang(code) {
   return resolveRecognitionLang(code);
 }
 
+function stripVisualCursor(value) {
+  return String(value || "").replace(/\|\s*$/, "").trim();
+}
+
 function speakText(value, lang) {
-  var text = String(value || "").trim();
+  var text = stripVisualCursor(value);
   if (!text) {
     showError("No hay texto para leer.");
     return;
@@ -638,7 +1052,7 @@ function speakText(value, lang) {
 }
 
 async function copyText(value) {
-  var text = String(value || "").trim();
+  var text = stripVisualCursor(value);
   if (!text) {
     showError("No hay texto para copiar.");
     return;

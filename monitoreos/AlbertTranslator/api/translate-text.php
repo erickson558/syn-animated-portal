@@ -19,6 +19,9 @@ $source = isset($payload['source_language'])
 $target = isset($payload['target_language'])
     ? strtolower(trim((string)$payload['target_language']))
     : 'es';
+$provider = isset($payload['translation_provider'])
+    ? strtolower(trim((string)$payload['translation_provider']))
+    : 'auto';
 
 if ($transcript === '') {
     send_json([
@@ -40,8 +43,13 @@ if ($source !== 'auto' && !is_valid_lang($source)) {
     send_json(['error' => 'Codigo de idioma origen invalido.'], 400);
 }
 
+$allowedProviders = ['auto', 'google-free', 'mymemory-free'];
+if (!in_array($provider, $allowedProviders, true)) {
+    send_json(['error' => 'Proveedor de traduccion invalido.'], 400);
+}
+
 $detectedLanguage = $source === 'auto' ? 'auto' : $source;
-$translated = translate_transcript($transcript, $source, $target, $detectedLanguage);
+$translated = translate_transcript($transcript, $source, $target, $detectedLanguage, $provider);
 
 send_json([
     'transcript' => $transcript,

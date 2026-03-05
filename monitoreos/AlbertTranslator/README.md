@@ -1,6 +1,6 @@
 # AlbertTranslator PHP
 
-Version `V1.2.8` para EasyPHP, sin dependencias de Python y con arquitectura separada frontend/backend.
+Version `V1.2.9` para EasyPHP, sin dependencias de Python y con arquitectura separada frontend/backend.
 
 ## Que hace
 
@@ -16,6 +16,7 @@ Version `V1.2.8` para EasyPHP, sin dependencias de Python y con arquitectura sep
 - Fallback local EN<->ES para mantener traduccion util cuando servicios externos no responden.
 - Traduccion en vivo mas rapida durante la transcripcion (preview + menor latencia de despacho).
 - Mejoras por frases en fallback EN->ES para evitar mezclas ingles/espanol en expresiones comunes.
+- Selector de proveedor free en la nube: `Auto`, `Google Free`, `MyMemory Free`.
 
 ## Arquitectura
 
