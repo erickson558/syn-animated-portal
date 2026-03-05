@@ -4,6 +4,12 @@ Todos los cambios relevantes de este proyecto se documentan aqui.
 
 El formato esta basado en Keep a Changelog y versionado SemVer (`Vx.y.z`).
 
+## [V1.1.1] - 2026-03-05
+
+### Fixed
+
+- Correccion de URL de Kameleon en el portal: de ruta raiz a `monitoreos/kameleon/index.html` para compatibilidad con EasyPHP.
+
 ## [V1.1.0] - 2026-03-05
 
 ### Added

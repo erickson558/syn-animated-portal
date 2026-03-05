@@ -8,7 +8,7 @@
  */
 date_default_timezone_set('America/Guatemala');
 $appName = 'Syn Animated Portal';
-$appVersion = 'V1.1.0';
+$appVersion = 'V1.1.1';
 $sites = array(
   array('name'=>'Earnapp','url'=>'http://localhost:888/monitoreos/earnapp/','desc'=>'Sistema Earnapp'),
   array('name'=>'Monitor Geko','url'=>'http://localhost:888/monitoreos/monitorgeko/','desc'=>'Monitor Geko - Sistema de monitoreo'),
@@ -16,6 +16,7 @@ $sites = array(
   array('name'=>'Portal de Inicio','url'=>'http://localhost:888/monitoreos/portaldeinicio/','desc'=>'Portal de inicio'),
   array('name'=>'Timezone','url'=>'http://localhost:888/monitoreos/timezone/','desc'=>'Gestor de Zona Horaria'),
   array('name'=>'YouTube Player','url'=>'http://localhost:888/monitoreos/youtubeplayer/','desc'=>'Reproductor de YouTube'),
+  array('name'=>'Kameleon','url'=>'http://localhost:888/monitoreos/kameleon/index.html','desc'=>'Kameleon exploit host y utilidades'),
 );
 $aosTypes = array('fade-up','flip-left','zoom-in','slide-right','flip-right','fade-down');
 ?><!doctype html>
