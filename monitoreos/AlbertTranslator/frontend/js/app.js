@@ -47,8 +47,11 @@ const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRec
 
 let recognition = null;
 let listening = false;
+let listeningRequested = false;
 let translateDebounceTimer = null;
 let activeTranslateController = null;
+let transcriptCommittedText = "";
+let lastInterimTranslateAt = 0;
 
 buildLanguageOptions();
 wireEvents();
@@ -134,11 +137,34 @@ function autoScrollToEnd(textarea) {
 }
 
 function appendTranscriptChunk(chunk) {
-  if (transcriptOutput.value) {
-    transcriptOutput.value += "\n";
+  if (transcriptCommittedText) {
+    transcriptCommittedText += "\n";
   }
-  transcriptOutput.value += chunk;
+  transcriptCommittedText += chunk;
+  transcriptOutput.value = transcriptCommittedText;
   autoScrollToEnd(transcriptOutput);
+}
+
+function renderTranscriptLive(interimText) {
+  var text = transcriptCommittedText;
+  if (interimText) {
+    text = text ? (text + "\n" + interimText) : interimText;
+    transcriptOutput.classList.add("streaming");
+  } else {
+    transcriptOutput.classList.remove("streaming");
+  }
+
+  transcriptOutput.value = text;
+  autoScrollToEnd(transcriptOutput);
+}
+
+function composeTranscriptForTranslation(interimText) {
+  var base = transcriptCommittedText;
+  var interim = String(interimText || "").trim();
+  if (!interim) {
+    return String(base || "").replace(/\s+/g, " ").trim();
+  }
+  return String((base ? base + " " : "") + interim).replace(/\s+/g, " ").trim();
 }
 
 function animateTypeInto(textarea, finalText) {
@@ -248,6 +274,8 @@ function startListening() {
     return;
   }
 
+  listeningRequested = true;
+
   recognition = new SpeechRecognitionCtor();
   recognition.continuous = true;
   recognition.interimResults = true;
@@ -266,13 +294,36 @@ function startListening() {
 
   recognition.onend = function () {
     listening = false;
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
-    setStatus("idle", "Inactivo");
+    if (!listeningRequested) {
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      transcriptOutput.classList.remove("streaming");
+      setStatus("idle", "Inactivo");
+      return;
+    }
+
+    setStatus("processing", "Reconectando escucha...");
+    setTimeout(function () {
+      try {
+        recognition.start();
+      } catch (_e) {
+        setTimeout(function () {
+          try {
+            recognition.start();
+          } catch (_e2) {
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            listeningRequested = false;
+            setStatus("error", "No se pudo reanudar");
+          }
+        }, 240);
+      }
+    }, 120);
   };
 
   recognition.onresult = function (event) {
     var finalChunk = "";
+    var interimChunk = "";
     for (var i = event.resultIndex; i < event.results.length; i += 1) {
       var result = event.results[i];
       var text = String((result[0] && result[0].transcript) || "").trim();
@@ -281,32 +332,53 @@ function startListening() {
       }
       if (result.isFinal) {
         finalChunk += " " + text;
+      } else {
+        interimChunk += " " + text;
       }
     }
 
     finalChunk = finalChunk.trim();
-    if (!finalChunk) {
+    interimChunk = interimChunk.trim();
+
+    if (finalChunk) {
+      appendTranscriptChunk(finalChunk);
+    }
+
+    renderTranscriptLive(interimChunk);
+
+    if (finalChunk) {
+      var committed = composeTranscriptForTranslation("");
+      if (committed) {
+        enqueueTranslation(committed, false);
+      }
       return;
     }
 
-    appendTranscriptChunk(finalChunk);
-
-    // Fluidez: siempre traducimos el buffer completo para mantener contexto.
-    var fullTranscript = transcriptOutput.value.replace(/\s+/g, " ").trim();
-    enqueueTranslation(fullTranscript, false);
+    // Traduccion intermedia controlada para respuesta tipo Google Translate.
+    var now = Date.now();
+    if (interimChunk && (now - lastInterimTranslateAt) > 700) {
+      var liveTranscript = composeTranscriptForTranslation(interimChunk);
+      if (liveTranscript.length > 8) {
+        lastInterimTranslateAt = now;
+        enqueueTranslation(liveTranscript, false);
+      }
+    }
   };
 
   recognition.start();
 }
 
 function stopListening() {
+  listeningRequested = false;
   if (recognition) {
     recognition.stop();
   }
 }
 
 function clearOutputs() {
+  transcriptCommittedText = "";
   transcriptOutput.value = "";
+  transcriptOutput.classList.remove("streaming");
   translationOutput.value = "";
   manualInput.value = "";
   showError("");

@@ -6,7 +6,7 @@ require_once __DIR__ . '/backend/config.php';
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?php echo APP_NAME; ?> <?php echo APP_VERSION; ?></title>
-  <link rel="stylesheet" href="./frontend/css/style.css?v=1.2.0">
+  <link rel="stylesheet" href="./frontend/css/style.css?v=1.2.1">
 </head>
 <body>
   <main class="app-shell">
@@ -43,7 +43,7 @@ require_once __DIR__ . '/backend/config.php';
           <h2>Transcripcion</h2>
           <div class="pane-actions">
             <button id="copy-transcript" type="button" class="action-btn">Copiar</button>
-            <button id="speak-transcript" type="button" class="action-btn" title="Leer transcripcion">Bocina</button>
+            <button id="speak-transcript" type="button" class="action-btn speaker-btn" title="Escuchar transcripcion" aria-label="Escuchar transcripcion">🔊</button>
           </div>
         </div>
         <textarea id="transcript-output" readonly placeholder="La transcripcion aparecera aqui..."></textarea>
@@ -54,7 +54,7 @@ require_once __DIR__ . '/backend/config.php';
           <h2>Traduccion</h2>
           <div class="pane-actions">
             <button id="copy-translation" type="button" class="action-btn">Copiar</button>
-            <button id="speak-translation" type="button" class="action-btn" title="Leer traduccion">Bocina</button>
+            <button id="speak-translation" type="button" class="action-btn speaker-btn" title="Escuchar traduccion" aria-label="Escuchar traduccion">🔊</button>
           </div>
         </div>
         <textarea id="translation-output" readonly placeholder="La traduccion aparecera aqui..."></textarea>
@@ -82,6 +82,6 @@ require_once __DIR__ . '/backend/config.php';
       appVersion: <?php echo json_encode(APP_VERSION); ?>,
     };
   </script>
-  <script src="./frontend/js/app.js?v=1.2.0"></script>
+  <script src="./frontend/js/app.js?v=1.2.1"></script>
 </body>
 </html>
