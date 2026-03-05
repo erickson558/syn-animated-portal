@@ -30,10 +30,23 @@ function translate_with_local_glossary($transcript, $source, $target)
         $pairs = [
             'hello' => 'hola',
             'hi' => 'hola',
+            'i' => 'yo',
+            'im' => 'yo',
             'how' => 'como',
             'are' => 'estas',
             'you' => 'tu',
             'today' => 'hoy',
+            'tomorrow' => 'manana',
+            'yesterday' => 'ayer',
+            'to' => 'a',
+            'for' => 'para',
+            'of' => 'de',
+            'the' => 'el',
+            'a' => 'un',
+            'an' => 'un',
+            'and' => 'y',
+            'or' => 'o',
+            'we' => 'nosotros',
             'good' => 'bueno',
             'morning' => 'manana',
             'afternoon' => 'tarde',
@@ -55,10 +68,26 @@ function translate_with_local_glossary($transcript, $source, $target)
             'this' => 'esto',
             'that' => 'eso',
             'can' => 'puede',
+            'could' => 'podria',
+            'would' => 'gustaria',
+            'should' => 'deberia',
             'help' => 'ayudar',
             'me' => 'me',
             'need' => 'necesito',
             'want' => 'quiero',
+            'buy' => 'comprar',
+            'send' => 'enviar',
+            'schedule' => 'programar',
+            'meeting' => 'reunion',
+            'next' => 'proxima',
+            'week' => 'semana',
+            'ticket' => 'boleto',
+            'report' => 'reporte',
+            'one' => 'una',
+            'large' => 'grande',
+            'great' => 'genial',
+            'pizza' => 'pizza',
+            'pepperoni' => 'pepperoni',
             'water' => 'agua',
             'food' => 'comida',
             'house' => 'casa',
@@ -127,15 +156,31 @@ function translate_with_local_glossary($transcript, $source, $target)
         ];
     } elseif ($source === 'es' && $target === 'en') {
         $phraseReplacements = [
+            '/\bhola como estas hoy\b/i' => 'hello how are you today',
             '/\bcomo estas hoy\b/i' => 'how are you today',
             '/\bpizza grande de pepperoni\b/i' => 'large pepperoni pizza',
             '/\bpor favor\b/i' => 'please',
         ];
     }
 
+    $originalTranscript = $transcript;
+    $phraseApplied = false;
     if (!empty($phraseReplacements)) {
         foreach ($phraseReplacements as $pattern => $replacement) {
-            $transcript = preg_replace($pattern, $replacement, $transcript);
+            $updated = preg_replace($pattern, $replacement, $transcript);
+            if ($updated !== null) {
+                if ($updated !== $transcript) {
+                    $phraseApplied = true;
+                }
+                $transcript = $updated;
+            }
+        }
+    }
+
+    if ($phraseApplied) {
+        $normalizedPhrase = trim(preg_replace('/\s+/', ' ', $transcript));
+        if (is_effective_translation($originalTranscript, $normalizedPhrase, $source, $target)) {
+            return $normalizedPhrase;
         }
     }
 
@@ -145,12 +190,17 @@ function translate_with_local_glossary($transcript, $source, $target)
     }
 
     $translated = '';
+    $wordCount = 0;
+    $translatedWords = 0;
     foreach ($parts as $part) {
         if ($part === '') {
             continue;
         }
 
         $key = strtolower($part);
+        if (preg_match('/^[a-zA-Z]+$/', $part)) {
+            $wordCount += 1;
+        }
         if (isset($pairs[$key])) {
             $replacement = $pairs[$key];
             $isCapitalized = (strlen($part) > 0 && strtoupper(substr($part, 0, 1)) === substr($part, 0, 1));
@@ -158,12 +208,23 @@ function translate_with_local_glossary($transcript, $source, $target)
                 $replacement = ucfirst($replacement);
             }
             $translated .= $replacement;
+            if (preg_match('/^[a-zA-Z]+$/', $part)) {
+                $translatedWords += 1;
+            }
         } else {
             $translated .= $part;
         }
     }
 
-    return trim(preg_replace('/\s+/', ' ', $translated));
+    $normalized = trim(preg_replace('/\s+/', ' ', $translated));
+    if ($wordCount > 0) {
+        $ratio = $translatedWords / $wordCount;
+        // Evita traducciones parciales con mezcla excesiva de idiomas.
+        if ($ratio < 0.55) {
+            return '';
+        }
+    }
+    return $normalized;
 }
 
 function translate_with_google_endpoint($transcript, $source, $target, &$detectedLanguage)

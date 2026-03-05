@@ -53,6 +53,7 @@ let activeTranslateController = null;
 let transcriptCommittedText = "";
 let transcriptForTranslation = "";
 let lastInterimTranslateAt = 0;
+let lastAcceptedTranslation = "";
 
 const LOCAL_GLOSSARY_EN_ES = {
   hello: "hola", hi: "hola", how: "como", are: "estas", you: "tu", today: "hoy",
@@ -256,6 +257,44 @@ function isEffectiveClientTranslation(original, translated, source, target) {
   return normalizeFlatText(original) !== normalizeFlatText(translated);
 }
 
+function looksMixedForTarget(translated, target) {
+  var tgt = String(target || "").toLowerCase();
+  if (tgt !== "es") {
+    return false;
+  }
+
+  var txt = String(translated || "").toLowerCase();
+  var englishMarkers = [" the ", " and ", " would ", " should ", " can ", " buy ", " report ", " meeting ", " week ", " ticket ", " tomorrow "];
+  var spanishMarkers = [" el ", " la ", " y ", " de ", " para ", " por ", " que ", " una ", " hoy ", " manana ", "reunion", "reporte", "boleto"];
+
+  var hasEn = false;
+  var hasEs = false;
+  for (var i = 0; i < englishMarkers.length; i += 1) {
+    if (txt.indexOf(englishMarkers[i]) !== -1) {
+      hasEn = true;
+      break;
+    }
+  }
+  for (var j = 0; j < spanishMarkers.length; j += 1) {
+    if (txt.indexOf(spanishMarkers[j]) !== -1) {
+      hasEs = true;
+      break;
+    }
+  }
+
+  return hasEn && hasEs;
+}
+
+function shouldAcceptTranslation(original, translated, source, target) {
+  if (!isEffectiveClientTranslation(original, translated, source, target)) {
+    return false;
+  }
+  if (looksMixedForTarget(translated, target)) {
+    return false;
+  }
+  return true;
+}
+
 function translateWithLocalGlossaryPreview(text, source, target) {
   var src = String(source || "").toLowerCase();
   var tgt = String(target || "").toLowerCase();
@@ -312,25 +351,29 @@ async function processTranscript(text, fromManual) {
     }
 
     var translatedText = String(payload.translation || "");
-    if (!isEffectiveClientTranslation(text, translatedText, sourceSelect.value, targetSelect.value)) {
+    if (!shouldAcceptTranslation(text, translatedText, sourceSelect.value, targetSelect.value)) {
       var fallback = await translateClientSideFallback(text, sourceSelect.value, targetSelect.value);
-      if (isEffectiveClientTranslation(text, fallback, sourceSelect.value, targetSelect.value)) {
+      if (shouldAcceptTranslation(text, fallback, sourceSelect.value, targetSelect.value)) {
         translatedText = fallback;
       }
     }
 
-    if (!isEffectiveClientTranslation(text, translatedText, sourceSelect.value, targetSelect.value)) {
+    if (!shouldAcceptTranslation(text, translatedText, sourceSelect.value, targetSelect.value)) {
       var fallbackAuto = await translateClientSideFallback(text, "auto", targetSelect.value);
-      if (isEffectiveClientTranslation(text, fallbackAuto, sourceSelect.value, targetSelect.value)) {
+      if (shouldAcceptTranslation(text, fallbackAuto, sourceSelect.value, targetSelect.value)) {
         translatedText = fallbackAuto;
       }
     }
 
-    if (!isEffectiveClientTranslation(text, translatedText, sourceSelect.value, targetSelect.value)) {
+    if (!shouldAcceptTranslation(text, translatedText, sourceSelect.value, targetSelect.value)) {
       var localPreview = translateWithLocalGlossaryPreview(text, sourceSelect.value, targetSelect.value);
-      if (isEffectiveClientTranslation(text, localPreview, sourceSelect.value, targetSelect.value)) {
+      if (shouldAcceptTranslation(text, localPreview, sourceSelect.value, targetSelect.value)) {
         translatedText = localPreview;
       }
+    }
+
+    if (!shouldAcceptTranslation(text, translatedText, sourceSelect.value, targetSelect.value)) {
+      translatedText = lastAcceptedTranslation || translatedText;
     }
 
     if (fromManual) {
@@ -341,6 +384,9 @@ async function processTranscript(text, fromManual) {
 
     translationOutput.classList.remove("streaming");
     animateTypeInto(translationOutput, translatedText);
+    if (translatedText) {
+      lastAcceptedTranslation = translatedText;
+    }
     setStatus(listening ? "listening" : "idle", listening ? "Escuchando en vivo" : "Listo");
   } catch (error) {
     if (error && error.name === "AbortError") {
@@ -516,6 +562,7 @@ function clearOutputs() {
   transcriptOutput.value = "";
   transcriptOutput.classList.remove("streaming");
   translationOutput.value = "";
+  lastAcceptedTranslation = "";
   manualInput.value = "";
   showError("");
   setStatus("idle", "Inactivo");

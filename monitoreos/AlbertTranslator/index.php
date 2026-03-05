@@ -6,7 +6,7 @@ require_once __DIR__ . '/backend/config.php';
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?php echo APP_NAME; ?> <?php echo APP_VERSION; ?></title>
-  <link rel="stylesheet" href="./frontend/css/style.css?v=1.2.7">
+  <link rel="stylesheet" href="./frontend/css/style.css?v=1.2.8">
 </head>
 <body>
   <main class="app-shell">
@@ -82,6 +82,6 @@ require_once __DIR__ . '/backend/config.php';
       appVersion: <?php echo json_encode(APP_VERSION); ?>,
     };
   </script>
-  <script src="./frontend/js/app.js?v=1.2.7"></script>
+  <script src="./frontend/js/app.js?v=1.2.8"></script>
 </body>
 </html>
