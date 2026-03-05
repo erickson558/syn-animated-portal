@@ -56,7 +56,25 @@ let lastInterimTranslateAt = 0;
 
 buildLanguageOptions();
 wireEvents();
+initSpeechUnloadGuards();
 checkHealth();
+
+function initSpeechUnloadGuards() {
+  // Evita que la voz siga al recargar/cerrar la pagina.
+  window.addEventListener("beforeunload", forceStopSpeech, false);
+  window.addEventListener("pagehide", forceStopSpeech, false);
+}
+
+function forceStopSpeech() {
+  if (!("speechSynthesis" in window)) {
+    return;
+  }
+  try {
+    window.speechSynthesis.cancel();
+  } catch (_e) {
+    // Ignorado: algunos navegadores pueden lanzar en unload.
+  }
+}
 
 function buildLanguageOptions() {
   sourceSelect.innerHTML = "";
@@ -493,7 +511,7 @@ function speakText(value, lang) {
     return;
   }
 
-  window.speechSynthesis.cancel();
+  forceStopSpeech();
   var utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = lang;
   utterance.rate = 1;
