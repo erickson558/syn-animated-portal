@@ -1,0 +1,79 @@
+<?php
+
+function send_json($payload, $statusCode)
+{
+    if (!headers_sent()) {
+        http_response_code((int)$statusCode);
+        header('Content-Type: application/json; charset=utf-8');
+    }
+
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+function read_json_body()
+{
+    $raw = file_get_contents('php://input');
+    $decoded = json_decode($raw, true);
+    if (!is_array($decoded)) {
+        return null;
+    }
+
+    return $decoded;
+}
+
+function http_get_remote($url, &$httpCode, &$networkError)
+{
+    $httpCode = 0;
+    $networkError = '';
+
+    if (function_exists('curl_init')) {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT => TRANSLATION_TIMEOUT_SEC,
+            CURLOPT_CONNECTTIMEOUT => 8,
+            CURLOPT_HTTPHEADER => [
+                'Accept: application/json',
+                'User-Agent: AlbertTranslator-PHP/1.2.0',
+            ],
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($response === false || $curlError) {
+            $networkError = 'Error de red al traducir: ' . $curlError;
+            return false;
+        }
+
+        return $response;
+    }
+
+    $context = stream_context_create([
+        'http' => [
+            'method' => 'GET',
+            'timeout' => TRANSLATION_TIMEOUT_SEC,
+            'header' => "Accept: application/json\r\nUser-Agent: AlbertTranslator-PHP/1.2.0\r\n",
+        ],
+    ]);
+
+    $response = @file_get_contents($url, false, $context);
+    if ($response === false) {
+        $networkError = 'No se pudo conectar al servicio de traduccion (sin curl).';
+    }
+
+    if (isset($http_response_header) && is_array($http_response_header)) {
+        foreach ($http_response_header as $headerLine) {
+            if (preg_match('#^HTTP/\S+\s+(\d{3})#', $headerLine, $m)) {
+                $httpCode = (int)$m[1];
+                break;
+            }
+        }
+    }
+
+    return $response;
+}
