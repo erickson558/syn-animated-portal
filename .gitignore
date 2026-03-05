@@ -1,0 +1,28 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Logs and temp
+*.log
+*.tmp
+*.cache
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+
+# Node artifacts
+node_modules/
+
+# Local runtime/cache data
+runtime/
+*.sqlite
+*.db
