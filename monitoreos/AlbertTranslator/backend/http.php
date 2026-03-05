@@ -53,6 +53,11 @@ function http_get_remote($url, &$httpCode, &$networkError)
         return $response;
     }
 
+    $psResponse = http_get_remote_via_powershell($url, $httpCode, $networkError);
+    if ($psResponse !== false) {
+        return $psResponse;
+    }
+
     $context = stream_context_create([
         'http' => [
             'method' => 'GET',
@@ -64,10 +69,7 @@ function http_get_remote($url, &$httpCode, &$networkError)
     $response = @file_get_contents($url, false, $context);
     if ($response === false) {
         $networkError = 'No se pudo conectar al servicio de traduccion (sin curl).';
-        $response = http_get_remote_via_powershell($url, $httpCode, $networkError);
-        if ($response !== false) {
-            return $response;
-        }
+        // Ya se intento via PowerShell antes de llegar aqui.
     }
 
     if (isset($http_response_header) && is_array($http_response_header)) {
