@@ -1,6 +1,6 @@
 # AlbertTranslator PHP
 
-Version `V1.2.9` para EasyPHP, sin dependencias de Python y con arquitectura separada frontend/backend.
+Version `V1.3.0` para EasyPHP, sin dependencias de Python y con arquitectura separada frontend/backend.
 
 ## Que hace
 
@@ -17,6 +17,9 @@ Version `V1.2.9` para EasyPHP, sin dependencias de Python y con arquitectura sep
 - Traduccion en vivo mas rapida durante la transcripcion (preview + menor latencia de despacho).
 - Mejoras por frases en fallback EN->ES para evitar mezclas ingles/espanol en expresiones comunes.
 - Selector de proveedor free en la nube: `Auto`, `Google Free`, `MyMemory Free`.
+- `Google Free` configurado por defecto.
+- Traduccion en vivo basada en escritura del textfield de origen (traduccion manual en tiempo real).
+- La transcripcion de audio no dispara traduccion automatica.
 
 ## Arquitectura
 

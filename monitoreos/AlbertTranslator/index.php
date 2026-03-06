@@ -34,8 +34,8 @@ $jsVersion = @filemtime(__DIR__ . '/frontend/js/app.js');
       <div class="lang-field">
         <label for="translation-provider">Modelo free en la nube</label>
         <select id="translation-provider">
-          <option value="auto" selected>Auto (recomendado)</option>
-          <option value="google-free">Google Free</option>
+          <option value="auto">Auto (recomendado)</option>
+          <option value="google-free" selected>Google Free</option>
           <option value="mymemory-free">MyMemory Free</option>
         </select>
       </div>
@@ -45,6 +45,7 @@ $jsVersion = @filemtime(__DIR__ . '/frontend/js/app.js');
       <button id="start-listening" type="button" class="primary">Iniciar escucha</button>
       <button id="stop-listening" type="button" disabled>Detener</button>
       <button id="clear-output" type="button">Limpiar</button>
+      <button id="save-preferences" type="button">Guardar preferencias</button>
       <div class="typing-tuning" aria-label="Ajustes de escritura">
         <label for="typing-profile">Perfil</label>
         <select id="typing-profile" class="typing-profile">
@@ -59,6 +60,14 @@ $jsVersion = @filemtime(__DIR__ . '/frontend/js/app.js');
           <input id="typing-stagger" type="checkbox" checked>
           <span>Stagger</span>
         </label>
+      </div>
+      <div class="live-mode-switch" aria-label="Modo traducción en vivo">
+        <span class="live-mode-label">Vivo preciso</span>
+        <label class="switch" for="live-translation-fast" title="Alternar modo rápido en vivo">
+          <input id="live-translation-fast" type="checkbox">
+          <span class="slider"></span>
+        </label>
+        <span class="live-mode-label">Vivo rápido</span>
       </div>
       <span id="status" class="status idle">Inactivo</span>
     </section>
