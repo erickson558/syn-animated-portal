@@ -65,6 +65,7 @@ let listening = false;
 let listeningRequested = false;
 let translateDebounceTimer = null;
 let typedTranslateDebounceTimer = null;
+let livePreviewDelayTimer = null;
 let transcriptCommittedText = "";
 let transcriptForTranslation = "";
 let translationCommittedText = "";
@@ -98,6 +99,19 @@ const LOCAL_GLOSSARY_EN_ES = {
   water: "agua", food: "comida", house: "casa", work: "trabajo", friend: "amigo",
   family: "familia", very: "muy", much: "mucho", time: "tiempo", now: "ahora", later: "luego"
 };
+const LOCAL_GLOSSARY_ES_EN = (function () {
+  var reversed = {};
+  for (var key in LOCAL_GLOSSARY_EN_ES) {
+    if (!Object.prototype.hasOwnProperty.call(LOCAL_GLOSSARY_EN_ES, key)) {
+      continue;
+    }
+    var es = String(LOCAL_GLOSSARY_EN_ES[key] || "").toLowerCase();
+    if (es && !reversed[es]) {
+      reversed[es] = key;
+    }
+  }
+  return reversed;
+})();
 
 buildLanguageOptions();
 restoreUiPreferences();
@@ -367,11 +381,83 @@ function getLiveTranslationMode() {
 }
 
 function getLivePreviewIntervalMs() {
-  return getLiveTranslationMode() === "fast" ? 140 : 320;
+  return getLiveTranslationMode() === "fast" ? 90 : 200;
 }
 
 function getLivePreviewDebounceMs() {
-  return getLiveTranslationMode() === "fast" ? 20 : 80;
+  return getLiveTranslationMode() === "fast" ? 0 : 35;
+}
+
+function getLiveStabilityDelayMs() {
+  // Pequeno delay para estabilizar idioma/frase antes de traducir interim.
+  return getLiveTranslationMode() === "fast" ? 170 : 320;
+}
+
+function scheduleLivePreviewTranslation(liveTranscript) {
+  var text = String(liveTranscript || "").trim();
+  if (!text) {
+    return;
+  }
+
+  if (livePreviewDelayTimer) {
+    clearTimeout(livePreviewDelayTimer);
+    livePreviewDelayTimer = null;
+  }
+
+  var delayMs = getLiveStabilityDelayMs();
+  livePreviewDelayTimer = setTimeout(function () {
+    var normalizedLive = normalizeFlatText(text);
+    if (!normalizedLive || normalizedLive === lastRenderedLiveSource) {
+      return;
+    }
+    lastRenderedLiveSource = normalizedLive;
+    lastInterimTranslateAt = Date.now();
+    enqueueTranslation(text, false, getLivePreviewDebounceMs(), "preview");
+  }, delayMs);
+}
+
+function localWordByWordTranslate(text, dictionary) {
+  var parts = String(text || "").split(/(\s+|[.,!?;:])/g);
+  var out = "";
+  for (var i = 0; i < parts.length; i += 1) {
+    var token = String(parts[i] || "");
+    if (!token) {
+      continue;
+    }
+    if (/^\s+$/.test(token) || /^[.,!?;:]$/.test(token)) {
+      out += token;
+      continue;
+    }
+    var lower = token.toLowerCase();
+    var translated = dictionary[lower];
+    if (!translated) {
+      out += token;
+      continue;
+    }
+    var keepCaps = token.length > 0 && token.charAt(0) === token.charAt(0).toUpperCase();
+    out += keepCaps ? (translated.charAt(0).toUpperCase() + translated.slice(1)) : translated;
+  }
+  return String(out || "").trim();
+}
+
+function buildOptimisticPreview(text) {
+  var src = String(sourceSelect ? sourceSelect.value : "auto").toLowerCase();
+  var tgt = String(targetSelect ? targetSelect.value : "es").toLowerCase();
+  var t = String(text || "").trim();
+  if (!t) {
+    return "";
+  }
+
+  if ((src === "en" || src === "auto") && tgt === "es") {
+    var es = localWordByWordTranslate(t, LOCAL_GLOSSARY_EN_ES);
+    return es || t;
+  }
+  if ((src === "es" || src === "auto") && tgt === "en") {
+    var en = localWordByWordTranslate(t, LOCAL_GLOSSARY_ES_EN);
+    return en || t;
+  }
+
+  return t;
 }
 
 function applyTypingProfile(profileName) {
@@ -616,7 +702,7 @@ function enqueueTranslation(text, fromManual, priorityMs, mode) {
     clearTimeout(translateDebounceTimer);
   }
 
-  var waitMs = typeof priorityMs === "number" ? priorityMs : (fromManual ? 0 : 120);
+  var waitMs = typeof priorityMs === "number" ? priorityMs : (fromManual ? 0 : 55);
   var queueMode = String(mode || "replace").toLowerCase();
 
   // Mientras transcribe, cancela preview viejo y deja pasar el preview nuevo.
@@ -1211,6 +1297,7 @@ function startListening() {
     if (pending) {
       appendTranscriptChunk(pending);
       lastInterimChunk = "";
+      enqueueTranslation(pending, false, 10, "append");
     }
 
     listening = false;
@@ -1255,9 +1342,23 @@ function startListening() {
       }
       if (result.isFinal) {
         finalChunk += " " + text;
-      } else {
-        interimChunk += " " + text;
       }
+    }
+
+    // Reconstruye interim completo para evitar saltos/perdida visual de palabras.
+    for (var j = 0; j < event.results.length; j += 1) {
+      var fullResult = event.results[j];
+      if (fullResult.isFinal) {
+        continue;
+      }
+      var interimText = String((fullResult[0] && fullResult[0].transcript) || "").trim();
+      if (!interimText) {
+        interimText = pickBestSpeechAlternative(fullResult);
+      }
+      if (!interimText) {
+        continue;
+      }
+      interimChunk += " " + interimText;
     }
 
     finalChunk = finalChunk.trim();
@@ -1267,9 +1368,23 @@ function startListening() {
     if (finalChunk) {
       appendTranscriptChunk(finalChunk);
       lastInterimChunk = "";
+      enqueueTranslation(finalChunk, false, 10, "append");
+      if (livePreviewDelayTimer) {
+        clearTimeout(livePreviewDelayTimer);
+        livePreviewDelayTimer = null;
+      }
     }
 
     renderTranscriptLive(interimChunk);
+
+    var now = Date.now();
+    var minLiveInterval = getLivePreviewIntervalMs();
+    if (interimChunk && (now - lastInterimTranslateAt) >= minLiveInterval) {
+      var liveTranscript = composeTranscriptForTranslation(interimChunk);
+      if (liveTranscript.length > 1) {
+        scheduleLivePreviewTranslation(liveTranscript);
+      }
+    }
   };
 
   recognition.start();
@@ -1277,6 +1392,10 @@ function startListening() {
 
 function stopListening() {
   listeningRequested = false;
+  if (livePreviewDelayTimer) {
+    clearTimeout(livePreviewDelayTimer);
+    livePreviewDelayTimer = null;
+  }
   lastRenderedLiveSource = "";
   liveTranslationPreviewText = "";
   animateTypeInto(translationOutput, translationCommittedText, "translation");
