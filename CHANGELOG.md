@@ -4,6 +4,14 @@ Todos los cambios relevantes de este proyecto se documentan aqui.
 
 El formato esta basado en Keep a Changelog y versionado SemVer (`Vx.y.z`).
 
+## [V1.1.2] - 2026-03-09
+
+### Changed
+
+- Se actualizo el acceso del portal principal de `Monitor Geko` a `MonitorApp`.
+- La URL del acceso rapido ahora apunta a `http://localhost:888/monitoreos/monitorapp/`.
+- Version de aplicacion incrementada a `V1.1.2`.
+
 ## [V1.1.1] - 2026-03-05
 
 ### Fixed

@@ -8,15 +8,18 @@
  */
 date_default_timezone_set('America/Guatemala');
 $appName = 'Syn Animated Portal';
-$appVersion = 'V1.1.1';
+$appVersion = 'V1.1.2';
 $sites = array(
   array('name'=>'Earnapp','url'=>'http://localhost:888/monitoreos/earnapp/','desc'=>'Sistema Earnapp'),
-  array('name'=>'Monitor Geko','url'=>'http://localhost:888/monitoreos/monitorgeko/','desc'=>'Monitor Geko - Sistema de monitoreo'),
+  array('name'=>'MonitorApp','url'=>'http://localhost:888/monitoreos/monitorapp/','desc'=>'MonitorApp - Sistema de monitoreo'),
   array('name'=>'Password Generator','url'=>'http://localhost:888/monitoreos/passwordgenerator/','desc'=>'Generador de contraseñas'),
   array('name'=>'Portal de Inicio','url'=>'http://localhost:888/monitoreos/portaldeinicio/','desc'=>'Portal de inicio'),
   array('name'=>'Timezone','url'=>'http://localhost:888/monitoreos/timezone/','desc'=>'Gestor de Zona Horaria'),
   array('name'=>'YouTube Player','url'=>'http://localhost:888/monitoreos/youtubeplayer/','desc'=>'Reproductor de YouTube'),
+  array('name'=>'Albert Translator','url'=>'http://localhost:888/monitoreos/AlbertTranslator/','desc'=>'Traductor de texto con Albert AI'),
   array('name'=>'Kameleon','url'=>'http://localhost:888/monitoreos/kameleon/index.html','desc'=>'Kameleon exploit host y utilidades'),
+  array('name'=>'TextCompare Pro','url'=>'http://localhost:888/monitoreos/textcompare/','desc'=>'Comparador de textos moderno con modo claro/oscuro'),
+  array('name'=>'Speedtest Albert','url'=>'http://localhost:888/monitoreos/speedtestAlbert/','desc'=>'Test de velocidad continuo con pausar/reanudar y detener'),
 );
 $aosTypes = array('fade-up','flip-left','zoom-in','slide-right','flip-right','fade-down');
 ?><!doctype html>
