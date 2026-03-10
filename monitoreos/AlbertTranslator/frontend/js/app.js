@@ -517,6 +517,15 @@ function autoScrollToEnd(textarea) {
   textarea.scrollTop = textarea.scrollHeight;
 }
 
+function renderTranslationInstant(text) {
+  stopTypewriter("translation");
+  var value = String(text || "");
+  typewriterStates.translation.raw = value;
+  translationOutput.value = value;
+  translationOutput.classList.remove("typing");
+  autoScrollToEnd(translationOutput);
+}
+
 function appendTranscriptChunk(chunk) {
   var normalizedChunk = normalizeQuestionPunctuation(String(chunk || "").trim(), sourceSelect.value);
   if (!normalizedChunk) {
@@ -706,8 +715,25 @@ function enqueueTranslation(text, fromManual, priorityMs, mode) {
     clearTimeout(translateDebounceTimer);
   }
 
-  var waitMs = typeof priorityMs === "number" ? priorityMs : (fromManual ? 0 : 55);
+  var waitMs = typeof priorityMs === "number" ? priorityMs : (fromManual ? 0 : 10);
   var queueMode = String(mode || "replace").toLowerCase();
+
+  if (!fromManual && (queueMode === "replace" || queueMode === "preview")) {
+    var optimistic = buildOptimisticPreview(text);
+    if (optimistic) {
+      renderTranslationPreview(optimistic);
+    }
+  }
+
+  if (!fromManual && (queueMode === "replace" || queueMode === "preview") && translateInFlight) {
+    if (activeTranslationController) {
+      try {
+        activeTranslationController.abort();
+      } catch (_eAbortLatest) {
+        // Ignorado.
+      }
+    }
+  }
 
   // Mientras transcribe, cancela preview viejo y deja pasar el preview nuevo.
   if (!fromManual && queueMode === "preview" && translateInFlight && activeTranslationMode === "preview") {
@@ -801,13 +827,18 @@ function scheduleTypedTranslation(text) {
   if (!sourceText) {
     translationCommittedText = "";
     liveTranslationPreviewText = "";
-    animateTypeInto(translationOutput, "", "translation");
+    renderTranslationInstant("");
     return;
+  }
+
+  var optimistic = buildOptimisticPreview(sourceText);
+  if (optimistic) {
+    renderTranslationPreview(optimistic);
   }
 
   typedTranslateDebounceTimer = setTimeout(function () {
     runManualTranslation(sourceText);
-  }, 220);
+  }, 65);
 }
 
 async function drainTranslationQueue() {
@@ -965,14 +996,14 @@ function renderTranslationPreview(translatedPreview) {
   var preview = String(translatedPreview || "").trim();
   liveTranslationPreviewText = preview;
   if (!preview) {
-    animateTypeInto(translationOutput, translationCommittedText, "translation");
+    renderTranslationInstant(translationCommittedText);
     return;
   }
 
   var combined = translationCommittedText
     ? (translationCommittedText + "\n" + preview)
     : preview;
-  animateTypeInto(translationOutput, combined, "translation");
+  renderTranslationInstant(combined);
 }
 
 function estimateEsCoverage(text) {
@@ -1031,7 +1062,7 @@ function appendTranslationChunk(chunk) {
     translationCommittedText += "\n";
   }
   translationCommittedText += normalizedChunk;
-  animateTypeInto(translationOutput, translationCommittedText, "translation");
+  renderTranslationInstant(translationCommittedText);
 }
 
 function pickBestSpeechAlternative(result) {
@@ -1169,7 +1200,7 @@ async function processTranscript(text, fromManual, mode) {
         translationCommittedText = translatedText;
         liveTranslationPreviewText = "";
       }
-      animateTypeInto(translationOutput, translatedText, "translation");
+      renderTranslationInstant(translatedText);
     }
 
     if (translatedText) {
