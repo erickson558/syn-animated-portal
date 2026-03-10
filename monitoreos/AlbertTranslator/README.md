@@ -1,6 +1,6 @@
 # AlbertTranslator PHP
 
-Version `V1.5.1` para EasyPHP, sin dependencias de Python y con arquitectura separada frontend/backend.
+Version `V1.5.2` para EasyPHP, sin dependencias de Python y con arquitectura separada frontend/backend.
 
 ## Que hace
 
