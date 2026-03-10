@@ -7,20 +7,13 @@
  * en cards + animaciones en títulos y subtítulos.
  */
 date_default_timezone_set('America/Guatemala');
-$appName = 'Syn Animated Portal';
-$appVersion = 'V1.1.2';
 $sites = array(
   array('name'=>'Earnapp','url'=>'http://localhost:888/monitoreos/earnapp/','desc'=>'Sistema Earnapp'),
-  array('name'=>'MonitorApp','url'=>'http://localhost:888/monitoreos/monitorapp/','desc'=>'MonitorApp - Sistema de monitoreo'),
+  array('name'=>'Monitor Geko','url'=>'http://localhost:888/monitoreos/monitorgeko/','desc'=>'Monitor Geko - Sistema de monitoreo'),
   array('name'=>'Password Generator','url'=>'http://localhost:888/monitoreos/passwordgenerator/','desc'=>'Generador de contraseñas'),
   array('name'=>'Portal de Inicio','url'=>'http://localhost:888/monitoreos/portaldeinicio/','desc'=>'Portal de inicio'),
   array('name'=>'Timezone','url'=>'http://localhost:888/monitoreos/timezone/','desc'=>'Gestor de Zona Horaria'),
   array('name'=>'YouTube Player','url'=>'http://localhost:888/monitoreos/youtubeplayer/','desc'=>'Reproductor de YouTube'),
-  array('name'=>'Albert Translator','url'=>'http://localhost:888/monitoreos/AlbertTranslator/','desc'=>'Traductor de texto con Albert AI'),
-  array('name'=>'Kameleon','url'=>'http://localhost:888/monitoreos/kameleon/index.html','desc'=>'Kameleon exploit host y utilidades'),
-  array('name'=>'TextCompare Pro','url'=>'http://localhost:888/monitoreos/textcompare/','desc'=>'Comparador de textos moderno con modo claro/oscuro'),
-  array('name'=>'Speedtest Albert','url'=>'http://localhost:888/monitoreos/speedtestAlbert/','desc'=>'Test de velocidad continuo con pausar/reanudar y detener'),
-  array('name'=>'SlackwareAlbert','url'=>'http://localhost:888/monitoreos/SlackwareAlbert/','desc'=>'Chat en tiempo real estilo Slack con backend/frontend separados'),
 );
 $aosTypes = array('fade-up','flip-left','zoom-in','slide-right','flip-right','fade-down');
 ?><!doctype html>
@@ -28,9 +21,7 @@ $aosTypes = array('fade-up','flip-left','zoom-in','slide-right','flip-right','fa
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<meta name="application-name" content="<?php echo htmlspecialchars($appName,ENT_QUOTES,'UTF-8'); ?>"/>
-<meta name="description" content="Portal interactivo con animaciones para lanzar herramientas locales"/>
-<title><?php echo htmlspecialchars($appName,ENT_QUOTES,'UTF-8'); ?> <?php echo htmlspecialchars($appVersion,ENT_QUOTES,'UTF-8'); ?></title>
+<title>Syn's Animated Portal Most Wanted</title>
 
 <!-- Tipografía local GTA -->
 <style>
@@ -95,33 +86,6 @@ body.ready{opacity:1; transform:none; transition:opacity .6s ease, transform .6s
   radial-gradient(1100px 680px at 10% 110%, rgba(14,107,117,.08), transparent 52%),
   radial-gradient(900px 400px at 100% 0%, rgba(74,60,193,.10), transparent 62%);
 }
-#fxGrid{position:fixed; inset:0; pointer-events:none; z-index:-1;
-  background:
-    linear-gradient(rgba(255,255,255,.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.03) 1px, transparent 1px);
-  background-size:28px 28px, 28px 28px;
-  mask-image:radial-gradient(circle at 50% 42%, #000 30%, transparent 72%);
-  animation:gridDrift 12s linear infinite;
-}
-@keyframes gridDrift{0%{transform:translateY(0)}100%{transform:translateY(28px)}}
-.ambient-blob{position:fixed; width:42vmax; height:42vmax; border-radius:50%; filter:blur(42px); pointer-events:none; opacity:.22; z-index:-1; mix-blend-mode:screen;}
-.ambient-blob.b1{left:-8vmax; top:-10vmax; background:radial-gradient(circle at 30% 30%, rgba(74,60,193,.9), rgba(74,60,193,0) 68%); animation:blobDrift1 18s ease-in-out infinite alternate;}
-.ambient-blob.b2{right:-10vmax; bottom:-12vmax; background:radial-gradient(circle at 60% 40%, rgba(14,107,117,.88), rgba(14,107,117,0) 70%); animation:blobDrift2 21s ease-in-out infinite alternate;}
-@keyframes blobDrift1{0%{transform:translate(0,0) scale(1)}100%{transform:translate(5vmax,4vmax) scale(1.08)}}
-@keyframes blobDrift2{0%{transform:translate(0,0) scale(1)}100%{transform:translate(-6vmax,-4vmax) scale(1.12)}}
-
-/* ===== Intro ===== */
-#introLoader{position:fixed; inset:0; z-index:2200; display:flex; align-items:center; justify-content:center;
-  background:radial-gradient(70% 55% at 50% 45%, rgba(25,28,45,.95), rgba(8,10,18,.98));
-  transition:opacity .55s ease, visibility .55s ease;
-}
-.intro-core{display:flex; flex-direction:column; align-items:center; gap:.65rem; color:#f3f6ff}
-.intro-logo{font-family:'SanAndreasGTA', cursive; font-size:2rem; letter-spacing:.8px; text-shadow:0 0 18px rgba(74,60,193,.45); animation:introPulse 1.8s ease-in-out infinite}
-.intro-line{width:220px; height:5px; border-radius:999px; overflow:hidden; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.14)}
-.intro-line i{display:block; width:45%; height:100%; background:linear-gradient(90deg, var(--accent), var(--accent2)); box-shadow:0 0 12px rgba(74,60,193,.5); animation:introSlide 1.2s ease-in-out infinite}
-@keyframes introPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
-@keyframes introSlide{0%{transform:translateX(-120%)}100%{transform:translateX(260%)}}
-body.intro-done #introLoader{opacity:0; visibility:hidden}
 
 /* ===== Progreso top ===== */
 #topProgress{position:fixed; top:0; left:0; height:3px; width:0;
@@ -132,11 +96,6 @@ body.intro-done #introLoader{opacity:0; visibility:hidden}
 /* ===== Header con animaciones ===== */
 .header-wrap{perspective:1200px; opacity:0; transform:translateY(-10px)}
 body.ready .header-wrap{opacity:1; transform:none; transition:opacity .6s .12s, transform .6s .12s}
-.version-badge{display:inline-flex; align-items:center; gap:.35rem; margin:0 auto .75rem; padding:.3rem .7rem; border-radius:999px;
-  font-size:.78rem; font-weight:800; letter-spacing:.35px; color:var(--text);
-  border:1px solid rgba(74,60,193,.35); background:linear-gradient(180deg, rgba(74,60,193,.15), rgba(14,107,117,.12));
-  box-shadow:0 0 0 rgba(74,60,193,0); animation:versionPulse 3.2s ease-in-out infinite;}
-@keyframes versionPulse{0%,100%{box-shadow:0 0 0 rgba(74,60,193,0)}50%{box-shadow:0 0 18px rgba(74,60,193,.28)}}
 
 /* Título: pulso de brillo + ligero “breathe” */
 h1.portal-header{
@@ -168,11 +127,6 @@ p.subheader{
   overflow:hidden;
   animation: subtitleGlow 4.2s ease-in-out infinite;
 }
-p.subheader.typing::before{
-  content:""; position:absolute; right:10px; top:22%; height:56%; width:2px;
-  background:rgba(255,255,255,.85); box-shadow:0 0 8px rgba(255,255,255,.55); animation:caretBlink .8s steps(1,end) infinite;
-}
-@keyframes caretBlink{50%{opacity:0}}
 html[data-theme="light"] p.subheader{
   background:rgba(255,255,255,.82); border:1px solid rgba(0,0,0,.08);
   -webkit-text-stroke:.6px rgba(255,255,255,.8);
@@ -241,12 +195,6 @@ html[data-theme="light"] .toolbar .btn{color:#2b2a70; border-color:var(--accent)
 .card-portal:hover .card-title{ letter-spacing:.6px }
 .card-portal .card-url{ color:var(--url) !important; font-size:.9rem; word-break:break-all; opacity:.95 }
 .card-portal .card-desc{ color:var(--muted) !important; line-height:1.35 }
-.card-portal .sparkles{position:absolute; inset:0; z-index:1; pointer-events:none; overflow:hidden}
-.card-portal .sparkles .sp{position:absolute; width:4px; height:4px; border-radius:50%;
-  background:radial-gradient(circle, rgba(255,255,255,.95), rgba(255,255,255,0)); opacity:.45;
-  animation:sparkFloat 3.2s linear infinite;
-}
-@keyframes sparkFloat{0%{transform:translateY(8px) scale(.8); opacity:0}20%{opacity:.55}100%{transform:translateY(-22px) scale(1.2); opacity:0}}
 
 /* Spotlight */
 .card-portal .mouse-light{position:absolute; inset:-40%; pointer-events:none; z-index:0; opacity:0; transition:opacity .22s ease}
@@ -352,14 +300,6 @@ a.btn-go .ripple{position:absolute; border-radius:50%; transform:scale(0); opaci
 
 mark{background:var(--mark); padding:0 .2rem; border-radius:.25rem}
 #toTop{box-shadow:0 10px 26px rgba(0,0,0,.28)}
-.portal-footer{padding:18px 14px 22px; text-align:center; color:var(--muted); font-size:.9rem; opacity:.92}
-.portal-footer kbd{background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); color:var(--text); border-radius:6px; padding:.05rem .35rem; font-weight:700}
-html[data-theme="light"] .portal-footer kbd{background:rgba(0,0,0,.05); border:1px solid rgba(0,0,0,.15)}
-#cursorTrail{position:fixed; inset:0; pointer-events:none; z-index:1200}
-#cursorTrail .dot{position:absolute; width:10px; height:10px; margin:-5px 0 0 -5px; border-radius:50%;
-  background:radial-gradient(circle at 30% 30%, rgba(255,255,255,.9), rgba(74,60,193,.55) 55%, rgba(74,60,193,0) 70%);
-  opacity:.28; filter:blur(.1px);
-}
 
 /* ===== Densidad Compacta ===== */
 body.compact .row.g-4{ --bs-gutter-x:.75rem; --bs-gutter-y:.75rem; }
@@ -371,33 +311,19 @@ body.compact a.btn-go{ padding:.45rem .9rem; font-size:.82rem; box-shadow:0 0 8p
 /* ===== Accesibilidad: reduce motion ===== */
 @media (prefers-reduced-motion: reduce){
   *{ animation: none !important; transition: none !important; }
-  #cursorTrail{display:none !important;}
-  #fxGrid{display:none !important;}
 }
 </style>
 </head>
 <body>
 
-<div id="introLoader" aria-hidden="true">
-  <div class="intro-core">
-    <div class="intro-logo">Syn Portal</div>
-    <div class="intro-line"><i></i></div>
-  </div>
-</div>
-
 <div id="particles-js"></div>
 <div id="overlay"></div>
-<div id="fxGrid"></div>
-<div class="ambient-blob b1"></div>
-<div class="ambient-blob b2"></div>
 <div id="topProgress"></div>
 <canvas id="confetti" style="position:fixed; inset:0; pointer-events:none; z-index:1500;"></canvas>
-<div id="cursorTrail" aria-hidden="true"></div>
 
 <div class="header-wrap">
-  <div class="version-badge"><i class="bi bi-stars"></i> <?php echo htmlspecialchars($appVersion,ENT_QUOTES,'UTF-8'); ?></div>
-  <h1 class="portal-header"><?php echo htmlspecialchars($appName,ENT_QUOTES,'UTF-8'); ?></h1>
-  <p id="subtitleText" class="subheader" data-fulltext="Haz clic en Ir al sitio o usa el buscador con resaltado">Haz clic en Ir al sitio o usa el buscador con resaltado</p>
+  <h1 class="portal-header">Syn's Portal</h1>
+  <p class="subheader">Haz clic en “Ir al sitio” o usa el buscador (con resaltado)</p>
 </div>
 
 <!-- Toolbar -->
@@ -460,11 +386,6 @@ body.compact a.btn-go{ padding:.45rem .9rem; font-size:.82rem; box-shadow:0 0 8p
   </div>
 </main>
 
-<footer class="portal-footer">
-  <div><strong><?php echo htmlspecialchars($appName,ENT_QUOTES,'UTF-8'); ?></strong> - <?php echo htmlspecialchars($appVersion,ENT_QUOTES,'UTF-8'); ?> - <?php echo date('Y'); ?></div>
-  <div>Atajos: <kbd>/</kbd> buscar, <kbd>t</kbd> cambiar tema, <kbd>f</kbd> buscar rapido</div>
-</footer>
-
 <!-- Toast stack -->
 <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
 
@@ -483,77 +404,10 @@ function getLS(k){ try{ return localStorage.getItem(k); }catch(e){ return null; 
 
 /* ===== Ready ===== */
 document.addEventListener('DOMContentLoaded', function(){
-  initIntro();
   document.body.className += (document.body.className?' ':'') + 'ready';
   showToast('✨ Portal listo');
   initParticles();
-  initTypingSubtitle();
-  initCursorTrail();
-  initCardSparkles(document);
 });
-
-function initIntro(){
-  setTimeout(function(){
-    if(document.body.className.indexOf('intro-done')===-1){ document.body.className += ' intro-done'; }
-  }, 680);
-}
-
-function initTypingSubtitle(){
-  var el=document.getElementById('subtitleText'); if(!el) return;
-  var full=el.getAttribute('data-fulltext')||el.textContent||'';
-  el.className += ' typing';
-  el.textContent='';
-  var i=0;
-  (function typeLoop(){
-    el.textContent = full.substring(0, i);
-    i++;
-    if(i<=full.length){ setTimeout(typeLoop, 23); }
-    else{ setTimeout(function(){ el.className=el.className.replace(/\btyping\b/g,''); }, 420); }
-  })();
-}
-
-function initCursorTrail(){
-  var root=document.getElementById('cursorTrail'); if(!root) return;
-  var prefersReduced=false, isCoarse=false;
-  try{ prefersReduced=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
-  try{ isCoarse=window.matchMedia && window.matchMedia('(pointer: coarse)').matches; }catch(e){}
-  if(prefersReduced || isCoarse){ root.style.display='none'; return; }
-
-  var dots=[], count=10;
-  for(var i=0;i<count;i++){
-    var d=document.createElement('span'); d.className='dot'; d.style.opacity=(0.36 - i*0.024).toFixed(3);
-    root.appendChild(d); dots.push({el:d, x:window.innerWidth/2, y:window.innerHeight/2});
-  }
-  var mx=window.innerWidth/2, my=window.innerHeight/2;
-  window.addEventListener('mousemove', function(e){ mx=e.clientX; my=e.clientY; }, false);
-  (function tick(){
-    var tx=mx, ty=my;
-    for(var j=0;j<dots.length;j++){
-      var p=dots[j]; p.x += (tx - p.x) * 0.27; p.y += (ty - p.y) * 0.27;
-      p.el.style.transform='translate('+p.x+'px,'+p.y+'px)';
-      tx=p.x; ty=p.y;
-    }
-    requestAnimationFrame(tick);
-  })();
-}
-
-function initCardSparkles(scope){
-  var root=scope||document;
-  var slots=root.querySelectorAll('.card-portal .sparkles');
-  for(var i=0;i<slots.length;i++){
-    var slot=slots[i];
-    if(slot.getAttribute('data-init')==='1') continue;
-    slot.setAttribute('data-init','1');
-    for(var k=0;k<8;k++){
-      var sp=document.createElement('span'); sp.className='sp';
-      sp.style.left=(8 + Math.random()*84).toFixed(2)+'%';
-      sp.style.top=(24 + Math.random()*64).toFixed(2)+'%';
-      sp.style.animationDelay=(Math.random()*2.8).toFixed(2)+'s';
-      sp.style.animationDuration=(2.2 + Math.random()*2.1).toFixed(2)+'s';
-      slot.appendChild(sp);
-    }
-  }
-}
 
 /* ===== Partículas (constelación) ===== */
 function initParticles(){
@@ -609,7 +463,7 @@ if (window.AOS){
     var cards=(scope||document).querySelectorAll('.tilt');
     for (var i=0;i<cards.length;i++){
       (function(card){
-        function onMove(e){ var r=card.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2, dx=(e.clientX-cx)/r.width, dy=((e.clientY||0)-cy)/r.height; card.style.transform='perspective(1000px) rotateX('+(dy*8)+'deg) rotateY('+(-dx*10)+'deg)'; }
+        function onMove(e){ var r=card.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2, dx=(e.clientX-cx)/r.width, dy=(e.clientX?e.clientY:0 -cy)/r.height; card.style.transform='perspective(1000px) rotateX('+(dy*8)+'deg) rotateY('+(-dx*10)+'deg)'; }
         function reset(){ card.style.transform='perspective(1000px) rotateX(0) rotateY(0)'; }
         card.addEventListener('mousemove',onMove,false); card.addEventListener('mouseleave',reset,false);
       })(cards[i]);
@@ -882,7 +736,6 @@ function escapeHtml(s){ return (s+'').replace(/[&<>"']/g,function(c){ return {'&
            +'</div>';
         }
         var items=row.querySelectorAll('[data-aos]'); for (var k=0;k<items.length;k++){ items[k].className+=' aos-animate'; }
-        initCardSparkles(row);
         showToast('🔄 Lista recargada ('+data.length+')');
         try{ AOS.refresh(); }catch(e){}
       } else { showToast('⚠️ Lista vacía'); }

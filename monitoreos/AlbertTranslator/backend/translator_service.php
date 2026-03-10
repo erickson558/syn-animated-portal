@@ -559,19 +559,5 @@ function translate_transcript($transcript, $source, $target, &$detectedLanguage,
         }
     }
 
-    $translated = translate_with_local_glossary($transcript, $source, $target);
-    if (is_effective_translation($transcript, $translated, $source, $target)) {
-        return $translated;
-    }
-
-    $src = strtolower((string)$source);
-    $tgt = strtolower((string)$target);
-    if (($src === 'en' || $src === 'auto') && $tgt === 'es') {
-        $forced = translate_with_force_en_es($transcript);
-        if (is_effective_translation($transcript, $forced, $source, $target)) {
-            return $forced;
-        }
-    }
-
     return $transcript;
 }
