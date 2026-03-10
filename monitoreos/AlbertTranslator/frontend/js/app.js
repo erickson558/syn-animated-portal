@@ -517,15 +517,6 @@ function autoScrollToEnd(textarea) {
   textarea.scrollTop = textarea.scrollHeight;
 }
 
-function renderTranslationInstant(text) {
-  stopTypewriter("translation");
-  var value = String(text || "");
-  typewriterStates.translation.raw = value;
-  translationOutput.value = value;
-  translationOutput.classList.remove("typing");
-  autoScrollToEnd(translationOutput);
-}
-
 function appendTranscriptChunk(chunk) {
   var normalizedChunk = normalizeQuestionPunctuation(String(chunk || "").trim(), sourceSelect.value);
   if (!normalizedChunk) {
@@ -827,7 +818,7 @@ function scheduleTypedTranslation(text) {
   if (!sourceText) {
     translationCommittedText = "";
     liveTranslationPreviewText = "";
-    renderTranslationInstant("");
+    animateTypeInto(translationOutput, "", "translation");
     return;
   }
 
@@ -996,14 +987,14 @@ function renderTranslationPreview(translatedPreview) {
   var preview = String(translatedPreview || "").trim();
   liveTranslationPreviewText = preview;
   if (!preview) {
-    renderTranslationInstant(translationCommittedText);
+    animateTypeInto(translationOutput, translationCommittedText, "translation");
     return;
   }
 
   var combined = translationCommittedText
     ? (translationCommittedText + "\n" + preview)
     : preview;
-  renderTranslationInstant(combined);
+  animateTypeInto(translationOutput, combined, "translation");
 }
 
 function estimateEsCoverage(text) {
@@ -1062,7 +1053,7 @@ function appendTranslationChunk(chunk) {
     translationCommittedText += "\n";
   }
   translationCommittedText += normalizedChunk;
-  renderTranslationInstant(translationCommittedText);
+  animateTypeInto(translationOutput, translationCommittedText, "translation");
 }
 
 function pickBestSpeechAlternative(result) {
@@ -1200,7 +1191,7 @@ async function processTranscript(text, fromManual, mode) {
         translationCommittedText = translatedText;
         liveTranslationPreviewText = "";
       }
-      renderTranslationInstant(translatedText);
+      animateTypeInto(translationOutput, translatedText, "translation");
     }
 
     if (translatedText) {
