@@ -555,6 +555,10 @@ function composeTranscriptForTranslation(interimText) {
   return String((base ? base + " " : "") + interim).replace(/\s+/g, " ").trim();
 }
 
+function getTranscriptFieldText() {
+  return stripVisualCursor(transcriptOutput ? transcriptOutput.value : "");
+}
+
 function computeTypeDelayMs(ch, mode) {
   var base = mode === "transcript" ? 10 : 13;
   var dial = typingSpeedDial ? Number(typingSpeedDial.value || 62) : 62;
@@ -1278,7 +1282,7 @@ function startListening() {
   recognition = new SpeechRecognitionCtor();
   recognition.continuous = true;
   recognition.interimResults = true;
-  recognition.maxAlternatives = 3;
+  recognition.maxAlternatives = 5;
   recognition.lang = resolveRecognitionLang(sourceSelect.value);
 
   recognition.onstart = function () {
@@ -1297,7 +1301,11 @@ function startListening() {
     if (pending) {
       appendTranscriptChunk(pending);
       lastInterimChunk = "";
-      enqueueTranslation(pending, false, 10, "append");
+    }
+
+    var transcriptNow = getTranscriptFieldText();
+    if (transcriptNow) {
+      enqueueTranslation(transcriptNow, false, 0, "replace");
     }
 
     listening = false;
@@ -1333,9 +1341,9 @@ function startListening() {
     var interimChunk = "";
     for (var i = event.resultIndex; i < event.results.length; i += 1) {
       var result = event.results[i];
-      var text = String((result[0] && result[0].transcript) || "").trim();
+      var text = pickBestSpeechAlternative(result);
       if (!text) {
-        text = pickBestSpeechAlternative(result);
+        text = String((result[0] && result[0].transcript) || "").trim();
       }
       if (!text) {
         continue;
@@ -1351,9 +1359,9 @@ function startListening() {
       if (fullResult.isFinal) {
         continue;
       }
-      var interimText = String((fullResult[0] && fullResult[0].transcript) || "").trim();
+      var interimText = pickBestSpeechAlternative(fullResult);
       if (!interimText) {
-        interimText = pickBestSpeechAlternative(fullResult);
+        interimText = String((fullResult[0] && fullResult[0].transcript) || "").trim();
       }
       if (!interimText) {
         continue;
@@ -1368,7 +1376,6 @@ function startListening() {
     if (finalChunk) {
       appendTranscriptChunk(finalChunk);
       lastInterimChunk = "";
-      enqueueTranslation(finalChunk, false, 10, "append");
       if (livePreviewDelayTimer) {
         clearTimeout(livePreviewDelayTimer);
         livePreviewDelayTimer = null;
@@ -1377,13 +1384,18 @@ function startListening() {
 
     renderTranscriptLive(interimChunk);
 
+    var transcriptNow = getTranscriptFieldText();
+    if (!transcriptNow || transcriptNow.length < 2) {
+      return;
+    }
+
+    // Requisito funcional: traducir siempre el contenido visible del textfield.
+    enqueueTranslation(transcriptNow, false, 0, "replace");
+
     var now = Date.now();
     var minLiveInterval = getLivePreviewIntervalMs();
-    if (interimChunk && (now - lastInterimTranslateAt) >= minLiveInterval) {
-      var liveTranscript = composeTranscriptForTranslation(interimChunk);
-      if (liveTranscript.length > 1) {
-        scheduleLivePreviewTranslation(liveTranscript);
-      }
+    if ((now - lastInterimTranslateAt) >= minLiveInterval) {
+      scheduleLivePreviewTranslation(transcriptNow);
     }
   };
 
@@ -1406,6 +1418,12 @@ function stopListening() {
     appendTranscriptChunk(pending);
     lastInterimChunk = "";
   }
+
+  var transcriptNow = getTranscriptFieldText();
+  if (transcriptNow) {
+    enqueueTranslation(transcriptNow, false, 0, "replace");
+  }
+
   if (recognition) {
     recognition.stop();
   }
